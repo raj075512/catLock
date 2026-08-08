@@ -1,18 +1,17 @@
-//
-//  goCatApp.swift
-//  goCat
-//
-//  Created by User on 02/08/26.
-//
-
-import SwiftUI
 import SwiftData
+import SwiftUI
 
 @main
-struct goCatApp: App {
+struct GoCatApp: App {
+#if os(iOS)
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
+#endif
+
+    @State private var appState = AppState()
+
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
-            Item.self,
+            Item.self
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
@@ -26,6 +25,7 @@ struct goCatApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environment(appState)
         }
         .modelContainer(sharedModelContainer)
     }
