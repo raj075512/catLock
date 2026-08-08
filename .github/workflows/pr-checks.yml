@@ -1,0 +1,73 @@
+name: PR Checks
+
+# Runs on every pull request that targets `dev`.
+# Its main job is to guarantee the PR branch merges cleanly into `dev`
+# (no conflicts), plus a build/test pass on macOS.
+on:
+  pull_request:
+    branches:
+      - dev
+
+# Cancel superseded runs for the same PR to save CI minutes.
+concurrency:
+  group: pr-checks-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  conflict-check:
+    name: No conflicts with dev
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          # Full history is required so we can merge against the base branch.
+          fetch-depth: 0
+
+      - name: Attempt a dry-run merge into dev
+        run: |
+          set -e
+          BASE="${{ github.event.pull_request.base.ref }}"   # e.g. dev
+          echo "Base branch: $BASE"
+
+          git config user.name "ci-conflict-check"
+          git config user.email "ci@catlock.local"
+
+          # Make sure we have the latest base branch.
+          git fetch origin "$BASE":"$BASE" 2>/dev/null || git fetch origin "$BASE"
+
+          # Try a non-committing, no-fast-forward merge of the base into the PR head.
+          # If this fails, there are conflicts that must be resolved before merging.
+          if git merge --no-commit --no-ff "origin/$BASE"; then
+            echo "✅ No merge conflicts with '$BASE'."
+            git merge --abort 2>/dev/null || true
+          else
+            echo "❌ Merge conflicts detected with '$BASE'. Conflicting files:"
+            git diff --name-only --diff-filter=U
+            git merge --abort 2>/dev/null || true
+            exit 1
+          fi
+
+  build-test:
+    name: Build & Test (iOS)
+    runs-on: macos-15
+    # Don't bother building if the branch can't even merge cleanly.
+    needs: conflict-check
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -switch /Applications/Xcode.app
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Build & run tests
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -project goCat.xcodeproj \
+            -scheme goCat \
+            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
+            CODE_SIGNING_ALLOWED=NO
