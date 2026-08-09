@@ -1,49 +1,22 @@
 import AVFoundation
+import os
 import SwiftUI
 import UIKit
 
-/// Plays the default session companion loop (cat rocking in its chair) as a
-/// silent, seamless, looping background video. This is the fixed "character"
-/// for a focus session — there is intentionally no cat/chair customization,
-/// keeping the session scene simple and consistent.
+/// A chrome-less, muted, infinitely looping playback of the default companion
+/// clip (cat rocking in its chair), backed by `AVQueuePlayer` +
+/// `AVPlayerLooper` for gapless looping.
 ///
-/// Falls back to a static poster frame when Reduce Motion is enabled, per the
-/// app's accessibility guidelines in DESIGN.md.
-struct SessionVideoPlayerView: View {
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    var body: some View {
-        ZStack {
-            if reduceMotion {
-                posterImage
-            } else {
-                LoopingVideoPlayer(resourceName: "session_cat_loop", resourceExtension: "mp4")
-            }
-        }
-        .clipShape(RoundedRectangle(cornerRadius: AppCornerRadius.large, style: .continuous))
-        .accessibilityHidden(true)
-    }
-
-    private var posterImage: some View {
-        Group {
-            if let path = Bundle.main.path(forResource: "session_cat_poster", ofType: "jpg"),
-               let uiImage = UIImage(contentsOfFile: path) {
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-            } else {
-                AppColors.elevatedSurface
-            }
-        }
-    }
-}
-
-/// A chrome-less, muted, infinitely looping video view backed by
-/// `AVQueuePlayer` + `AVPlayerLooper` for gapless playback. Lightweight by
-/// design: no controls, no audio, no network — a single bundled asset.
-private struct LoopingVideoPlayer: UIViewRepresentable {
-    let resourceName: String
-    let resourceExtension: String
+/// Lightweight by design: no controls, no audio, no network — one bundled
+/// asset. This is the fixed session "character"; there is intentionally no
+/// cat/chair customization anywhere in the app.
+///
+/// Callers generally want `CatSceneBackground` instead, which adds the Reduce
+/// Motion fallback and the legibility scrim used by the landing screen and the
+/// active session.
+struct LoopingCatVideo: UIViewRepresentable {
+    var resourceName: String = "session_cat_loop"
+    var resourceExtension: String = "mp4"
 
     func makeUIView(context: Context) -> LoopingPlayerUIView {
         LoopingPlayerUIView(resourceName: resourceName, resourceExtension: resourceExtension)
@@ -78,11 +51,38 @@ final class LoopingPlayerUIView: UIView {
         layer.addSublayer(playerLayer)
 
         player.play()
+
+        // Suspend decoding while backgrounded so a long focus session isn't
+        // burning cycles on frames nobody can see.
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleDidEnterBackground),
+            name: UIApplication.didEnterBackgroundNotification,
+            object: nil
+        )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleWillEnterForeground),
+            name: UIApplication.willEnterForegroundNotification,
+            object: nil
+        )
     }
 
     @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+
+    @objc private func handleDidEnterBackground() {
+        queuePlayer?.pause()
+    }
+
+    @objc private func handleWillEnterForeground() {
+        queuePlayer?.play()
     }
 
     override func layoutSubviews() {
@@ -92,6 +92,6 @@ final class LoopingPlayerUIView: UIView {
 }
 
 #Preview {
-    SessionVideoPlayerView()
+    LoopingCatVideo()
         .frame(width: 260, height: 320)
 }

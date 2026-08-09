@@ -3,7 +3,7 @@ import SwiftUI
 /// A quiet preview of the selected room shown on Home. The companion (cat +
 /// chair) is a fixed default shown as a static poster here — the full
 /// looping animation only plays once a focus session actually starts, via
-/// `SessionVideoPlayerView`. There is no cat/chair switching by design.
+/// `CatSceneBackground`. There is no cat/chair switching by design.
 struct LiveSceneView: View {
     let scene: SceneOption
 

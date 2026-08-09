@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Customization is intentionally limited to Room and Sound. The session
-/// companion (cat + chair) is a fixed default — see `SessionVideoPlayerView`
+/// companion (cat + chair) is a fixed default — see `CatSceneBackground`
 /// — so there is no character/chair switching here, keeping setup quick and
 /// the app's scope small.
 struct CustomizationSheet: View {

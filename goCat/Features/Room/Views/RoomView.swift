@@ -6,7 +6,7 @@ struct RoomView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: AppSpacing.large) {
-                LiveSceneView(scene: .study, cat: .starter, chair: .starter)
+                LiveSceneView(scene: .study)
 
                 PurchasedItemsView(items: viewModel.purchasedItems)
             }

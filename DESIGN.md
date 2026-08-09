@@ -129,7 +129,11 @@ Located in `goCat/Core/Components/`. Prefer these over bespoke views so styling 
 | `LoadingView` | Standard loading/progress state |
 | `EmptyStateView` | Standard empty-state messaging |
 | `ErrorStateView` | Standard error presentation |
-| `SessionVideoPlayerView` (`Features/FocusSession/Views/`) | Muted, looping default-companion video for an active session; falls back to a poster image under Reduce Motion |
+| `GlassSurface` / `GlassPill` | Frosted translucent panels that float over the cat scene |
+| `DurationChip` | Selectable session-length chip (15 / 25 / 45) |
+| `QuickActionPill` | Secondary action in the Sounds / Room / Tasks row |
+| `CatSceneBackground` (`Features/Home/Views/`) | Full-bleed cat scene shared by Home and the active session; handles the Reduce Motion poster fallback and legibility scrim |
+| `LoopingCatVideo` (`Features/FocusSession/Views/`) | Muted, gapless looping playback of the companion clip; pauses when backgrounded |
 
 Shared modifiers live in `Core/Extensions/View+Modifiers.swift` and `View+Accessibility.swift`.
 
@@ -137,15 +141,15 @@ Shared modifiers live in `Core/Extensions/View+Modifiers.swift` and `View+Access
 
 ## 🗺️ Information Architecture
 
-The app uses a **tab-based** structure (`Navigation/MainTabView.swift`, `TabItem.swift`) with per-tab navigation destinations (`NavigationDestination.swift`).
+The app is **single-screen first**: there is no tab bar. `RootView` goes straight to `HomeView`, which is a full-bleed cat scene with every control floating on frosted glass above it. Everything else is presented from there as a sheet or from the overflow menu, so the artwork is never competing with chrome.
 
-Primary areas:
-- **Home** — Customize the **Room** and **Sound**, then start a focus session. No character customization.
-- **Focus Session** — Live timer, session controls, pause/resume, completion, with the default cat-companion video playing.
-- **Tasks** — Manage focus tasks.
-- **Progress** — Weekly summary, focus history, streaks.
-- **Room** — View owned/purchased items.
-- **Settings** — About, sound, accessibility.
+- **Home (landing)** — Full-bleed `CatSceneBackground`. Top bar: streak pill (left) + `…` overflow (right). Bottom glass panel: duration chips (15 / 25 / 45), **Start Focus**, and the **Sounds / Room / Tasks** shortcut row.
+- **Focus Session** — Presented full-screen over Home. Deliberately keeps the *same* background so starting a session doesn't visually reload the scene; only the glass panel swaps to countdown + controls.
+- **Sounds / Room** — Sheets (`CustomizationSheet`, kinds `.sound` / `.room`). No character customization.
+- **Tasks** — Sheet from the shortcut row.
+- **Progress**, **Settings** — Sheets from the `…` overflow menu.
+
+`AppRouter`/`TabItem` remain in the codebase but are unused by this flow; they're kept as scaffolding in case a tabbed structure returns.
 
 First-run flow: **Launch → Onboarding** (welcome → focus goal → notification permission) → **Home**.
 

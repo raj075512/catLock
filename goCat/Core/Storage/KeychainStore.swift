@@ -1,4 +1,5 @@
 import Foundation
+import os
 import Security
 
 /// Secure, encrypted-at-rest storage for anything sensitive: auth/session
