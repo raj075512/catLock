@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 /// The full-bleed cat scene that sits behind the landing screen and the active
 /// session. Using one component for both means the artwork never jumps or

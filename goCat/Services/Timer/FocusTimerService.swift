@@ -13,7 +13,7 @@ final class FocusTimerService {
     /// because the countdown reached zero on its own. Lets callers keep a
     /// single source of truth (e.g. `FocusSession.state`) in sync without
     /// duplicating the "did it finish" check in two places.
-    var onComplete: (() -> Void)?
+    var onComplete: (@MainActor () -> Void)?
 
     /// Drives the actual countdown. A plain `while` loop on a `Task` rather
     /// than a `Timer`/`Combine` publisher, so it's cancellable with no
@@ -58,14 +58,17 @@ final class FocusTimerService {
     private func scheduleTicking() {
         tickTask?.cancel()
         tickTask = Task { [weak self] in
-            while let self, self.state == .running, self.remainingSeconds > 0 {
+            while true {
                 try? await Task.sleep(for: .seconds(1))
-                guard !Task.isCancelled else { return }
+
+                if Task.isCancelled { return }
                 guard let self, self.state == .running else { return }
 
                 self.remainingSeconds = max(0, self.remainingSeconds - 1)
+
                 if self.remainingSeconds == 0 {
                     self.complete()
+                    return
                 }
             }
         }

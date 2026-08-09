@@ -8,8 +8,6 @@ import SwiftUI
 /// remaining destinations (Progress, Settings) live in the overflow menu so
 /// nothing competes with the scene.
 struct HomeView: View {
-    @Environment(AppState.self) private var appState
-
     @State private var viewModel = HomeViewModel()
     @State private var customizationKind: CustomizationSheet.Kind?
     @State private var isShowingTasks = false
@@ -34,7 +32,9 @@ struct HomeView: View {
             CustomizationSheet(kind: kind, viewModel: viewModel)
         }
         .sheet(isPresented: $isShowingTasks) {
-            NavigationStack { TaskListView() }
+            // TaskListView supplies its own NavigationStack; nesting another
+            // one here would swallow its toolbar (including the Done button).
+            TaskListView()
         }
         .sheet(isPresented: $isShowingProgress) {
             FocusProgressView()

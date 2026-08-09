@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 /// A quiet preview of the selected room shown on Home. The companion (cat +
 /// chair) is a fixed default shown as a static poster here — the full
