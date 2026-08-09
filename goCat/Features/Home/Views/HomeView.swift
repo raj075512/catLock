@@ -42,8 +42,20 @@ struct HomeView: View {
         .sheet(isPresented: $isShowingSettings) {
             SettingsView()
         }
-        .fullScreenCover(isPresented: $isSessionActive) {
+        .fullScreenCover(isPresented: $isSessionActive, onDismiss: {
+            // A completed session may have bumped the streak in the
+            // background (StreakStore) — pick that up now that we're back.
+            viewModel.refreshStreak()
+        }) {
             FocusSessionView(session: viewModel.startFocusSession())
+        }
+        .sheet(isPresented: $viewModel.isShowingCustomPicker) {
+            CustomDurationPickerView(
+                totalMinutes: Binding(
+                    get: { viewModel.customMinutes ?? viewModel.selectedMinutes },
+                    set: { viewModel.selectCustomDuration($0) }
+                )
+            )
         }
     }
 
@@ -110,13 +122,22 @@ struct HomeView: View {
             ForEach(HomeViewModel.durationPresets, id: \.self) { minutes in
                 DurationChip(
                     minutes: minutes,
-                    isSelected: viewModel.selectedMinutes == minutes
+                    isSelected: viewModel.selectedMinutes == minutes && !viewModel.isCustomSelected
                 ) {
                     withAnimation(AppAnimation.quick) {
                         viewModel.selectedMinutes = minutes
                     }
                     HapticManager.shared.selection()
                 }
+            }
+
+            DurationChip(
+                title: viewModel.customChipTitle,
+                systemImage: "slider.horizontal.3",
+                isSelected: viewModel.isCustomSelected
+            ) {
+                HapticManager.shared.selection()
+                viewModel.isShowingCustomPicker = true
             }
         }
     }

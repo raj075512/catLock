@@ -31,10 +31,14 @@ final class FocusTimerService {
         scheduleTicking()
     }
 
-    func pause() {
-        state = .paused
+    /// A session the user backed out of early — distinct from `complete()`.
+    /// No `onCancel` callback: unlike completion, cancellation only ever
+    /// happens from the explicit button tap, so there's no second path that
+    /// needs to stay in sync.
+    func cancel() {
         tickTask?.cancel()
         tickTask = nil
+        state = .cancelled
     }
 
     func complete() {

@@ -45,21 +45,38 @@ struct GlassPill<Content: View>: View {
     }
 }
 
-/// A selectable duration chip (15 / 25 / 45 min). The selected chip brightens
-/// rather than changing shape, keeping the row visually calm.
+/// A selectable duration chip (15 / 25 / 45 min, or Custom). The selected
+/// chip brightens rather than changing shape, keeping the row visually calm.
 struct DurationChip: View {
-    let minutes: Int
+    let title: String
+    let systemImage: String
     let isSelected: Bool
     let action: () -> Void
+
+    init(minutes: Int, isSelected: Bool, action: @escaping () -> Void) {
+        self.title = "\(minutes) min"
+        self.systemImage = isSelected ? "clock" : "alarm"
+        self.isSelected = isSelected
+        self.action = action
+    }
+
+    init(title: String, systemImage: String, isSelected: Bool, action: @escaping () -> Void) {
+        self.title = title
+        self.systemImage = systemImage
+        self.isSelected = isSelected
+        self.action = action
+    }
 
     var body: some View {
         Button(action: action) {
             HStack(spacing: 6) {
-                Image(systemName: isSelected ? "clock" : "alarm")
-                    .font(.system(size: 15, weight: .medium))
+                Image(systemName: systemImage)
+                    .font(.system(size: 14, weight: .medium))
 
-                Text("\(minutes) min")
-                    .font(.system(size: 15, weight: .medium))
+                Text(title)
+                    .font(.system(size: 14, weight: .medium))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
             }
             .foregroundStyle(AppColors.textPrimary)
             .frame(maxWidth: .infinity)
@@ -75,7 +92,7 @@ struct DurationChip: View {
             .contentShape(Capsule(style: .continuous))
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("\(minutes) minute session")
+        .accessibilityLabel(title)
         .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
     }
 }

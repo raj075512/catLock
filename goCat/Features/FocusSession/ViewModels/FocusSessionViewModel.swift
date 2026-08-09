@@ -7,15 +7,19 @@ final class FocusSessionViewModel {
     var timerService: FocusTimerService
     var session: FocusSession
 
-    init(session: FocusSession = FocusSession()) {
+    /// Set once, the moment the countdown finishes on its own. The streak
+    /// increments here — not in the view — so it happens exactly once no
+    /// matter how many times the completion screen re-renders.
+    private(set) var completedStreak: Int?
+
+    init(session: FocusSession = FocusSession(), streakStore: StreakStore = .shared) {
         self.session = session
         self.timerService = FocusTimerService(duration: session.plannedDuration)
 
-        // Keep `session.state` in sync even when the countdown finishes on
-        // its own (not just when `complete()` is tapped explicitly).
         timerService.onComplete = { [weak self] in
             self?.session.state = .completed
             self?.session.endedAt = .now
+            self?.completedStreak = streakStore.recordCompletedSession()
         }
     }
 
@@ -31,15 +35,12 @@ final class FocusSessionViewModel {
         session.state = .running
     }
 
-    func pause() {
-        timerService.pause()
-        session.state = .paused
-    }
-
-    func complete() {
-        // session.state/endedAt are updated by the onComplete callback set
-        // in init, so this stays correct whether complete() is tapped
-        // explicitly or the countdown just ran out.
-        timerService.complete()
+    /// The only way to end a session before the countdown finishes. There's
+    /// no pause, and no manual "mark complete" — completion only happens by
+    /// letting the countdown reach zero (see `onComplete` above).
+    func cancel() {
+        timerService.cancel()
+        session.state = .cancelled
+        session.endedAt = .now
     }
 }
