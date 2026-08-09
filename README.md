@@ -7,8 +7,8 @@
 ## ✨ Features
 
 - **Focus Sessions** — Pomodoro-style timed focus sessions with pause/resume, live timer, and a completion flow.
-- **Animated Cat** — A Rive-powered cat that reacts to your session state.
-- **Room Customization** — Personalize your space: choose your **cat**, **chair**, **scene/background**, and ambient **sound**.
+- **Cat Companion** — A fixed, cozy default: your cat rocking in its chair, played as a looping video for every session. Not customizable by design — one less decision before you focus.
+- **Room Customization** — Personalize your space: choose your **room background** and ambient **sound**.
 - **Ambient Sounds** — Background audio to help you concentrate.
 - **Tasks** — Create and track tasks alongside your focus sessions.
 - **Progress Tracking** — Weekly summaries, focus history, and streaks.

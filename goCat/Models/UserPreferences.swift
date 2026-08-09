@@ -1,8 +1,6 @@
 import Foundation
 
 struct UserPreferences: Codable, Hashable {
-    var selectedCatID: CatOption.ID
-    var selectedChairID: ChairOption.ID
     var selectedSceneID: SceneOption.ID
     var selectedSoundID: SoundOption.ID
     var focusDuration: TimeInterval
@@ -12,8 +10,6 @@ struct UserPreferences: Codable, Hashable {
     var hasCompletedOnboarding: Bool
 
     static let defaults = UserPreferences(
-        selectedCatID: CatOption.starter.id,
-        selectedChairID: ChairOption.starter.id,
         selectedSceneID: SceneOption.study.id,
         selectedSoundID: SoundOption.rain.id,
         focusDuration: 25 * 60,

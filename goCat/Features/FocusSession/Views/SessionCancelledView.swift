@@ -1,28 +1,26 @@
 import SwiftUI
 
-/// Shown when the countdown reaches zero on its own — the only way a
-/// session can complete, since there's no explicit "finish now" button by
-/// design. Plays the trophy animation once and reports the new streak.
-struct SessionCompletedView: View {
-    let newStreak: Int
+/// Shown when the user taps Cancel before the countdown finishes. No
+/// streak change, no soft-pedaling — a session that didn't happen goes to
+/// the trash, visually.
+struct SessionCancelledView: View {
     var onDone: (() -> Void)?
 
     var body: some View {
         VStack(spacing: AppSpacing.small) {
-            LottiePlaybackView(resourceName: "session_trophy", onFinish: onDone)
+            LottiePlaybackView(resourceName: "trash_cancel", onFinish: onDone)
                 .frame(width: 120, height: 120)
                 .accessibilityHidden(true)
 
-            Text("Session complete")
+            Text("Session cancelled")
                 .font(AppFonts.headline)
                 .foregroundStyle(AppColors.textPrimary)
 
-            Text("\(newStreak) day streak")
+            Text("This one didn't count — start again whenever you're ready.")
                 .font(AppFonts.caption)
                 .foregroundStyle(AppColors.textSecondary)
+                .multilineTextAlignment(.center)
 
-            // Fallback in case the animation-finished callback never fires —
-            // there must always be a way out of this screen.
             if let onDone {
                 Button("Continue", action: onDone)
                     .font(AppFonts.caption)
@@ -31,12 +29,12 @@ struct SessionCompletedView: View {
             }
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Session complete. \(newStreak) day streak.")
+        .accessibilityLabel("Session cancelled. This one didn't count.")
     }
 }
 
 #Preview {
-    SessionCompletedView(newStreak: 8) {}
+    SessionCancelledView {}
         .padding()
         .background(AppColors.background)
 }
