@@ -52,26 +52,39 @@ struct FocusSessionView: View {
         .padding(.top, AppSpacing.small)
     }
 
+    /// Deliberately more transparent than the landing screen's panel — lower
+    /// material tint, thinner border — so it reads as a light glass strip
+    /// resting over the scene rather than a card sitting on top of it. Wide
+    /// and short (one row) rather than the landing panel's tall stack.
     private var controlPanel: some View {
-        GlassSurface(cornerRadius: 32) {
-            VStack(spacing: AppSpacing.medium) {
+        GlassSurface(cornerRadius: 26, tint: .white.opacity(0.08), borderOpacity: 0.22) {
+            Group {
                 if viewModel.session.state == .completed {
                     completedPanel
                 } else {
                     activePanel
                 }
             }
-            .padding(AppSpacing.large)
+            .padding(.horizontal, AppSpacing.large)
+            .padding(.vertical, AppSpacing.medium)
         }
     }
 
     private var activePanel: some View {
-        VStack(spacing: AppSpacing.medium) {
-            Text(viewModel.session.state == .paused ? "Paused" : "Focusing")
-                .font(AppFonts.caption)
-                .foregroundStyle(AppColors.textSecondary)
+        HStack(spacing: AppSpacing.medium) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(viewModel.session.state == .paused ? "Paused" : "Focusing")
+                    .font(AppFonts.caption)
+                    .foregroundStyle(AppColors.textSecondary)
 
-            SessionTimerView(timeText: viewModel.formattedRemainingTime)
+                Text(viewModel.formattedRemainingTime)
+                    .font(.system(size: 36, weight: .bold, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundStyle(AppColors.textPrimary)
+                    .accessibilityLabel("Remaining time \(viewModel.formattedRemainingTime)")
+            }
+
+            Spacer(minLength: AppSpacing.medium)
 
             SessionControlsView(
                 state: viewModel.session.state,

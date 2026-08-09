@@ -4,6 +4,8 @@ struct TaskListView: View {
     @State private var viewModel = TaskViewModel()
     @State private var isAddingTask = false
 
+    @Environment(\.dismiss) private var dismiss
+
     var body: some View {
         NavigationStack {
             Group {
@@ -23,6 +25,12 @@ struct TaskListView: View {
             }
             .navigationTitle("Tasks")
             .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+
                 ToolbarItem(placement: .primaryAction) {
                     Button {
                         isAddingTask = true

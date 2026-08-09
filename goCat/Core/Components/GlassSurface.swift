@@ -10,6 +10,7 @@ import SwiftUI
 struct GlassSurface<Content: View>: View {
     var cornerRadius: CGFloat = 28
     var tint: Color = .white.opacity(0.18)
+    var borderOpacity: Double = 0.35
     @ViewBuilder let content: () -> Content
 
     var body: some View {
@@ -23,7 +24,7 @@ struct GlassSurface<Content: View>: View {
                     }
                     .overlay {
                         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                            .strokeBorder(.white.opacity(0.35), lineWidth: 0.8)
+                            .strokeBorder(.white.opacity(borderOpacity), lineWidth: 0.8)
                     }
             }
             .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))

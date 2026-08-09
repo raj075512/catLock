@@ -26,6 +26,8 @@ struct CustomizationSheet: View {
     let kind: Kind
     @Bindable var viewModel: HomeViewModel
 
+    @Environment(\.dismiss) private var dismiss
+
     var body: some View {
         NavigationStack {
             Group {
@@ -37,6 +39,14 @@ struct CustomizationSheet: View {
                 }
             }
             .navigationTitle(kind.title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
         }
     }
 }
