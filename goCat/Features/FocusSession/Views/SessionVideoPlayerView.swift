@@ -1,5 +1,6 @@
 import AVFoundation
 import SwiftUI
+import UIKit
 
 /// Plays the default session companion loop (cat rocking in its chair) as a
 /// silent, seamless, looping background video. This is the fixed "character"
