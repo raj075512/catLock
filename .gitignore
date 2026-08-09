@@ -1,3 +1,9 @@
+# Secrets — never commit
+.env
+.env.*
+Secrets.xcconfig
+GoogleService-Info.plist
+
 # macOS
 .DS_Store
 

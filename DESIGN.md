@@ -1,6 +1,33 @@
 # catLock — Design System & Guidelines
 
-This document describes the visual and interaction design language for **catLock** (`goCat`). All values are sourced from the app's design-system code in `goCat/Core/DesignSystem/` and should be treated as the single source of truth. **Do not hardcode colors, fonts, spacing, or radii in feature code — always reference these tokens.**
+This document describes the visual and interaction design language for **catLock** (`goCat`), an ADHD-friendly focus timer app with a cozy cat companion. All values are sourced from the app's design-system code in `goCat/Core/DesignSystem/` and should be treated as the single source of truth. **Do not hardcode colors, fonts, spacing, or radii in feature code — always reference these tokens.**
+
+This document also tracks the **product scope** (distilled from the full GoCat product blueprint) and the app's **security posture**. Keep all three in sync in the same PR whenever they change.
+
+---
+
+## 🎯 MVP Scope & Reductions
+
+The full product blueprint covers a large surface: a reward economy (fish/coins/trash), a 6-slot room-furniture inventory, Supabase-backed cloud sync and auth, RevenueCat subscriptions with a paywall, WidgetKit, Apple Sign-In, product analytics, and crash reporting. Building all of it at once adds risk without adding value to the core loop, so the MVP is deliberately smaller. Anything not listed under "In scope" is **deferred, not cut** — it stays a documented Post-MVP target.
+
+**In scope (this build)**
+- Pomodoro-style focus timer: start, pause, resume, cancel, complete (`Services/Timer/`, `Features/FocusSession/`).
+- A single, fixed cat companion shown as a looping video during a session (`SessionVideoPlayerView`) — see "Signature Elements" below. No cat/chair customization.
+- Room customization: background/scene only (`SceneSelectionView`).
+- Sound customization: ambient loop selection (`SoundSelectionView`).
+- Tasks: add, complete, start a session from a task (`Features/Tasks/`).
+- Progress: basic local stats — streak, sessions, weekly view (`Features/Progress/`).
+- Local-first persistence via Core Data/SwiftData + `UserDefaultsStore`. No backend.
+
+**Explicitly deferred (Post-MVP)**
+- Reward economy (fish/coins/trash wallet, unlockable inventory catalog) — `RoomViewModel` keeps a placeholder purchased-items list only.
+- Supabase auth + cloud sync (the `Database Schema` in the product blueprint documents the target shape for when this lands).
+- RevenueCat subscriptions/paywall — `StoreKitService` stays a thin StoreKit product-loading stub until this is prioritized.
+- WidgetKit home-screen widget, Sign in with Apple.
+- Product analytics (PostHog/Amplitude) and crash reporting (Crashlytics/Sentry).
+- Multiple cat personalities/seasonal items, themed rooms.
+
+Reintroducing any deferred item should start with a short addition to this section, not straight to code.
 
 ---
 
@@ -102,6 +129,7 @@ Located in `goCat/Core/Components/`. Prefer these over bespoke views so styling 
 | `LoadingView` | Standard loading/progress state |
 | `EmptyStateView` | Standard empty-state messaging |
 | `ErrorStateView` | Standard error presentation |
+| `SessionVideoPlayerView` (`Features/FocusSession/Views/`) | Muted, looping default-companion video for an active session; falls back to a poster image under Reduce Motion |
 
 Shared modifiers live in `Core/Extensions/View+Modifiers.swift` and `View+Accessibility.swift`.
 
@@ -112,8 +140,8 @@ Shared modifiers live in `Core/Extensions/View+Modifiers.swift` and `View+Access
 The app uses a **tab-based** structure (`Navigation/MainTabView.swift`, `TabItem.swift`) with per-tab navigation destinations (`NavigationDestination.swift`).
 
 Primary areas:
-- **Home** — Customize the room (cat, chair, scene, sound) and start a focus session.
-- **Focus Session** — Live timer, session controls, pause/resume, completion.
+- **Home** — Customize the **Room** and **Sound**, then start a focus session. No character customization.
+- **Focus Session** — Live timer, session controls, pause/resume, completion, with the default cat-companion video playing.
 - **Tasks** — Manage focus tasks.
 - **Progress** — Weekly summary, focus history, streaks.
 - **Room** — View owned/purchased items.
@@ -125,9 +153,10 @@ First-run flow: **Launch → Onboarding** (welcome → focus goal → notificati
 
 ## 🐱 Signature Elements
 
-- **The Cat** — A Rive-powered animated cat (`Services/Animation/`, `Features/Home/Views/CatRiveView.swift`) that reacts to session state. It is the emotional core of the UI.
-- **The Room / Scene** — A customizable, illustrated space (`LiveSceneView`, `SessionSceneView`) with selectable backgrounds and furniture.
-- **Ambient Sound** — Optional background audio (`Services/Audio/`) paired with the scene.
+- **The Cat** — A single, fixed companion: a cat resting in a rocking chair, delivered as a short (~10s) pre-rendered looping video (`Resources/Media/session_cat_loop.mp4`, played back by `Features/FocusSession/Views/SessionVideoPlayerView.swift`). It plays automatically for the whole focus session — this is intentionally **not** customizable, keeping the session view simple, predictable, and cheap to render (no rig, no character-selection code path). `Resources/Media/session_cat_poster.jpg` is the static first-frame fallback used both as the Home room preview (`LiveSceneView`) and whenever Reduce Motion is on.
+  - A Rive-based rig remains a reasonable future upgrade if per-state reactions (idle/happy/sad from the product blueprint) are prioritized later — see `Services/Animation/RiveAnimationService.swift`, currently unused by the video-based flow but left in place as scaffolding.
+- **The Room** — A customizable, illustrated background only (`LiveSceneView`, `SceneSelectionView`). Furniture-slot customization (chair, rug, lamp, plant, wall art) from the product blueprint is deferred — see MVP Scope.
+- **Ambient Sound** — Optional background audio (`Services/Audio/`) paired with the room.
 
 ---
 
@@ -138,6 +167,20 @@ First-run flow: **Launch → Onboarding** (welcome → focus goal → notificati
 - **Reduce Motion** — Honor the system setting; fall back to fades/instant changes instead of the `slow`/`standard` animations.
 - **Contrast** — `textPrimary` on `background`/`surface` meets contrast needs; avoid placing `textSecondary` on saturated colors.
 - **Dedicated settings** — `Features/Settings/Views/AccessibilitySettingsView.swift` exposes user-facing accessibility options.
+
+---
+
+## 🔒 Security
+
+Security hardening is on by default, not opt-in. Current baseline:
+
+- **`Core/Security/AppSecurityManager.swift`** — runs at launch (`AppDelegate.application(_:didFinishLaunchingWithOptions:)`) and checks for a jailbroken/tampered environment and an attached debugger. This is **advisory, not a hard block**: it never prevents a legitimate user from using the app. It exists so future entitlement/purchase logic can treat on-device state as lower-trust on a flagged device (e.g. prefer server-side receipt validation once a backend exists) and so we have a signal in logs if something looks off.
+- **`Core/Storage/KeychainStore.swift`** — the designated home for any secret, token, or entitlement cache. `UserDefaultsStore`/`SettingsStore` are unencrypted on disk and must stay limited to plain preferences (room, sound, durations) — never auth material or purchase receipts.
+- **No hardcoded secrets** — there are none in this codebase today because there is no backend/RevenueCat integration yet. When Supabase or RevenueCat keys are added (see MVP Scope), they must come from build configuration (`.xcconfig` + secrets manager), never be committed to source, and any long-lived token goes in `KeychainStore`.
+- **App Transport Security** — the app makes no network calls yet, so leave ATS at its strict default (no arbitrary loads) in the target's Info settings; do not add exceptions without a concrete, reviewed reason.
+- **Least data collection** — no analytics/crash SDKs are integrated yet (deliberately deferred); when they are, event payloads should stay in line with `Analytics Events` in the product blueprint and avoid collecting anything beyond what's declared in App Privacy.
+
+Run the `security-review` skill against the diff before merging any change that touches persistence, networking, or purchases.
 
 ---
 

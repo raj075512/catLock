@@ -1,10 +1,12 @@
 import SwiftUI
 
+/// Customization is intentionally limited to Room and Sound. The session
+/// companion (cat + chair) is a fixed default — see `SessionVideoPlayerView`
+/// — so there is no character/chair switching here, keeping setup quick and
+/// the app's scope small.
 struct CustomizationSheet: View {
     enum Kind: String, Identifiable {
-        case scene
-        case cat
-        case chair
+        case room
         case sound
 
         var id: String {
@@ -13,12 +15,8 @@ struct CustomizationSheet: View {
 
         var title: String {
             switch self {
-            case .scene:
-                "Scene"
-            case .cat:
-                "Cat"
-            case .chair:
-                "Chair"
+            case .room:
+                "Room"
             case .sound:
                 "Sound"
             }
@@ -32,12 +30,8 @@ struct CustomizationSheet: View {
         NavigationStack {
             Group {
                 switch kind {
-                case .scene:
+                case .room:
                     SceneSelectionView(selection: $viewModel.selectedScene)
-                case .cat:
-                    CatSelectionView(selection: $viewModel.selectedCat)
-                case .chair:
-                    ChairSelectionView(selection: $viewModel.selectedChair)
                 case .sound:
                     SoundSelectionView(selection: $viewModel.selectedSound)
                 }

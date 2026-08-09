@@ -1,17 +1,13 @@
 import SwiftUI
 
 struct CustomizationSummaryView: View {
-    let cat: CatOption
-    let chair: ChairOption
     let scene: SceneOption
     let sound: SoundOption
     let action: (CustomizationSheet.Kind) -> Void
 
     var body: some View {
         VStack(spacing: AppSpacing.small) {
-            customizationRow(title: "Scene", value: scene.name, kind: .scene)
-            customizationRow(title: "Cat", value: cat.name, kind: .cat)
-            customizationRow(title: "Chair", value: chair.name, kind: .chair)
+            customizationRow(title: "Room", value: scene.name, kind: .room)
             customizationRow(title: "Sound", value: sound.name, kind: .sound)
         }
         .cardSurface()

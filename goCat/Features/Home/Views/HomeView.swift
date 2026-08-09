@@ -10,15 +10,9 @@ struct HomeView: View {
                 VStack(spacing: AppSpacing.large) {
                     HomeHeaderView()
 
-                    LiveSceneView(
-                        scene: viewModel.selectedScene,
-                        cat: viewModel.selectedCat,
-                        chair: viewModel.selectedChair
-                    )
+                    LiveSceneView(scene: viewModel.selectedScene)
 
                     CustomizationSummaryView(
-                        cat: viewModel.selectedCat,
-                        chair: viewModel.selectedChair,
                         scene: viewModel.selectedScene,
                         sound: viewModel.selectedSound,
                         action: { customizationKind = $0 }

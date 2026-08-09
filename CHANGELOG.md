@@ -17,10 +17,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Work integrated on `dev`, not yet released to `main`.
 
 ### Added
-- _Nothing yet._
+- **Default session companion video**: `SessionVideoPlayerView` plays a looping, muted, pre-rendered video of the cat resting in its rocking chair (`Resources/Media/session_cat_loop.mp4`) during a focus session, with a static poster fallback (`session_cat_poster.jpg`) for Home and for Reduce Motion.
+- **Security baseline**: `AppSecurityManager` (advisory jailbreak/debugger checks at launch) and `KeychainStore` (secure storage for future secrets/tokens/entitlements), wired into `AppDelegate`.
+- **MVP scope documentation**: `DESIGN.md` now documents in-scope vs. deferred features distilled from the full product blueprint, plus a Security section.
 
 ### Changed
-- _Nothing yet._
+- **Home customization reduced to Room + Sound**: removed cat/chair character customization entirely; `CustomizationSheet.Kind` is now `.room` / `.sound` only. The companion is a fixed default, not user-selectable.
+- `LiveSceneView` now shows a static room preview (poster image) instead of a live cat/chair renderer.
+
+### Removed
+- `CatOption`, `ChairOption`, `CatSelectionView`, `ChairSelectionView`, `CatRiveView`, and their fields on `HomeViewModel`/`UserPreferences` — unused now that the companion is fixed rather than customizable.
 
 ### Fixed
 - _Nothing yet._
