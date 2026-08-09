@@ -10,6 +10,13 @@ final class FocusSessionViewModel {
     init(session: FocusSession = FocusSession()) {
         self.session = session
         self.timerService = FocusTimerService(duration: session.plannedDuration)
+
+        // Keep `session.state` in sync even when the countdown finishes on
+        // its own (not just when `complete()` is tapped explicitly).
+        timerService.onComplete = { [weak self] in
+            self?.session.state = .completed
+            self?.session.endedAt = .now
+        }
     }
 
     var formattedRemainingTime: String {
@@ -30,8 +37,9 @@ final class FocusSessionViewModel {
     }
 
     func complete() {
+        // session.state/endedAt are updated by the onComplete callback set
+        // in init, so this stays correct whether complete() is tapped
+        // explicitly or the countdown just ran out.
         timerService.complete()
-        session.state = .completed
-        session.endedAt = .now
     }
 }
