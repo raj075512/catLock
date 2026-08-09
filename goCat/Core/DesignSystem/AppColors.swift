@@ -10,4 +10,8 @@ enum AppColors {
     static let textPrimary = Color(hex: "#1E2525")
     static let textSecondary = Color(hex: "#69706F")
     static let warning = Color(hex: "#B85C38")
+    /// Reserved for the active-session countdown and the Cancel action —
+    /// a clear red (distinct from `warning`'s burnt orange) so a running
+    /// timer reads as urgent at a glance.
+    static let danger = Color(hex: "#D14343")
 }

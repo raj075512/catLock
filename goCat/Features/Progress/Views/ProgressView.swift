@@ -3,6 +3,8 @@ import SwiftUI
 struct FocusProgressView: View {
     @State private var viewModel = ProgressViewModel()
 
+    @Environment(\.dismiss) private var dismiss
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -15,6 +17,13 @@ struct FocusProgressView: View {
             }
             .background(AppColors.background)
             .navigationTitle("Progress")
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
         }
     }
 }

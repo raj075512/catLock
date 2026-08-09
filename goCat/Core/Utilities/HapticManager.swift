@@ -14,6 +14,13 @@ final class HapticManager {
         UIImpactFeedbackGenerator(style: style.uiImpactFeedbackStyle).impactOccurred()
 #endif
     }
+
+    /// Light tick for picking between equivalent options (e.g. session length).
+    func selection() {
+#if os(iOS)
+        UISelectionFeedbackGenerator().selectionChanged()
+#endif
+    }
 }
 
 enum HapticStyle {
