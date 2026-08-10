@@ -17,7 +17,9 @@ struct HomeView: View {
 
     var body: some View {
         ZStack {
-            CatSceneBackground()
+            // Plays through once and rests on the last frame. The endless
+            // loop belongs to an active session, not to the picker.
+            CatSceneBackground(playback: .once)
 
             VStack(spacing: 0) {
                 topBar

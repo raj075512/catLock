@@ -11,8 +11,8 @@ This document also tracks the **product scope** (distilled from the full GoCat p
 The full product blueprint covers a large surface: a reward economy (fish/coins/trash), a 6-slot room-furniture inventory, Supabase-backed cloud sync and auth, RevenueCat subscriptions with a paywall, WidgetKit, Apple Sign-In, product analytics, and crash reporting. Building all of it at once adds risk without adding value to the core loop, so the MVP is deliberately smaller. Anything not listed under "In scope" is **deferred, not cut** — it stays a documented Post-MVP target.
 
 **In scope (this build)**
-- Pomodoro-style focus timer: start, pause, resume, cancel, complete (`Services/Timer/`, `Features/FocusSession/`).
-- A single, fixed cat companion shown as a looping video during a session (`SessionVideoPlayerView`) — see "Signature Elements" below. No cat/chair customization.
+- Focus timer: start, cancel, complete (`Services/Timer/`, `Features/FocusSession/`). **Pause was deliberately removed** — a started session is a commitment, so the only way out is an explicit Cancel that discards it.
+- A single, fixed cat companion shown as a video (`SessionVideoPlayerView`) — one run on Home, looping during a session. See "Signature Elements" below. No cat/chair customization.
 - Room customization: background/scene only (`SceneSelectionView`).
 - Sound customization: ambient loop selection (`SoundSelectionView`).
 - Tasks: add, complete, start a session from a task (`Features/Tasks/`).
@@ -130,10 +130,11 @@ Located in `goCat/Core/Components/`. Prefer these over bespoke views so styling 
 | `EmptyStateView` | Standard empty-state messaging |
 | `ErrorStateView` | Standard error presentation |
 | `GlassSurface` / `GlassPill` | Frosted translucent panels that float over the cat scene |
-| `DurationChip` | Selectable session-length chip (15 / 25 / 45) |
+| `DurationChip` | Selectable session-length chip (15 / 25 / 45 / Custom) |
+| `LottiePlaybackView` (`Core/Components/`) | Plays a bundled `.lottie` once and reports completion; used for the trophy and trash outcomes |
 | `QuickActionPill` | Secondary action in the Sounds / Room / Tasks row |
-| `CatSceneBackground` (`Features/Home/Views/`) | Full-bleed cat scene shared by Home and the active session; handles the Reduce Motion poster fallback and legibility scrim |
-| `LoopingCatVideo` (`Features/FocusSession/Views/`) | Muted, gapless looping playback of the companion clip; pauses when backgrounded |
+| `CatSceneBackground` (`Features/Home/Views/`) | Full-bleed cat scene shared by Home and the active session; takes a `playback` mode, and handles the Reduce Motion poster fallback and legibility scrim |
+| `CatSceneVideo` (`Features/FocusSession/Views/`) | Muted playback of the companion clip in either `.looping` (session) or `.once` (Home) mode; pauses when backgrounded |
 
 Shared modifiers live in `Core/Extensions/View+Modifiers.swift` and `View+Accessibility.swift`.
 
@@ -143,8 +144,8 @@ Shared modifiers live in `Core/Extensions/View+Modifiers.swift` and `View+Access
 
 The app is **single-screen first**: there is no tab bar. `RootView` goes straight to `HomeView`, which is a full-bleed cat scene with every control floating on frosted glass above it. Everything else is presented from there as a sheet or from the overflow menu, so the artwork is never competing with chrome.
 
-- **Home (landing)** — Full-bleed `CatSceneBackground`. Top bar: streak pill (left) + `…` overflow (right). Bottom glass panel: duration chips (15 / 25 / 45), **Start Focus**, and the **Sounds / Room / Tasks** shortcut row.
-- **Focus Session** — Presented full-screen over Home. Deliberately keeps the *same* background so starting a session doesn't visually reload the scene; only the glass panel swaps to countdown + controls.
+- **Home (landing)** — Full-bleed `CatSceneBackground` in `.once` playback. Top bar: streak pill (left) + `…` overflow (right). Bottom glass panel: duration chips (15 / 25 / 45 / **Custom**), **Start Focus**, and the **Sounds / Room / Tasks** shortcut row. Custom opens `CustomDurationPickerView` — a large progress dial over hour/minute wheels, hard-capped at 2 hours.
+- **Focus Session** — Presented full-screen over Home. Keeps the *same* artwork, switched to `.looping`; only the glass panel swaps to the countdown. **No back button and no pause** — the single control is Cancel. A session either runs to zero (trophy animation, streak +1 via `StreakStore`) or is cancelled (trash animation, streak untouched). Both outcomes are one-shot Lottie playbacks through `LottiePlaybackView`.
 - **Sounds / Room** — Sheets (`CustomizationSheet`, kinds `.sound` / `.room`). No character customization.
 - **Tasks** — Sheet from the shortcut row.
 - **Progress**, **Settings** — Sheets from the `…` overflow menu.
@@ -157,7 +158,10 @@ First-run flow: **Launch → Onboarding** (welcome → focus goal → notificati
 
 ## 🐱 Signature Elements
 
-- **The Cat** — A single, fixed companion: a cat resting in a rocking chair, delivered as a short (~10s) pre-rendered looping video (`Resources/Media/session_cat_loop.mp4`, played back by `Features/FocusSession/Views/SessionVideoPlayerView.swift`). It plays automatically for the whole focus session — this is intentionally **not** customizable, keeping the session view simple, predictable, and cheap to render (no rig, no character-selection code path). `Resources/Media/session_cat_poster.jpg` is the static first-frame fallback used both as the Home room preview (`LiveSceneView`) and whenever Reduce Motion is on.
+- **The Cat** — A single, fixed companion: a cat resting in a rocking chair, delivered as a short (~10s) pre-rendered video (`Resources/Media/session_cat_loop.mp4`, played back by `CatSceneVideo` in `Features/FocusSession/Views/SessionVideoPlayerView.swift`). It is intentionally **not** customizable, keeping the session view simple, predictable, and cheap to render (no rig, no character-selection code path). `Resources/Media/session_cat_poster.jpg` is the static first-frame fallback used both as the Home room preview (`LiveSceneView`) and whenever Reduce Motion is on.
+  - **Playback differs by screen, and that difference is the point.** Home passes `.once`: the clip runs a single time and holds on its final frame, so the scene greets the user and then settles while they choose a duration. An active session passes `.looping`: continuous rocking for as long as the timer runs. Motion signals "a session is happening"; stillness signals "you haven't started yet."
+  - Mechanically, `.looping` is `AVQueuePlayer` + `AVPlayerLooper`; `.once` is a plain `AVPlayer` with `actionAtItemEnd = .pause` plus a `hasFinishedSingleRun` latch, so returning from the background doesn't hand out a second run. One run means one run per `HomeView` lifetime — coming back from a finished session leaves Home's frozen frame untouched, since the session is a `fullScreenCover` layered above it rather than a replacement.
+  - The session screen builds its own player from frame 0 rather than inheriting Home's paused one. **This depends on the clip being authored as a seamless loop** (last frame meeting first frame) — otherwise the handover reads as a visible cut at the exact moment the user taps Start Focus. Any replacement clip must preserve that property.
   - A Rive-based rig remains a reasonable future upgrade if per-state reactions (idle/happy/sad from the product blueprint) are prioritized later — see `Services/Animation/RiveAnimationService.swift`, currently unused by the video-based flow but left in place as scaffolding.
 - **The Room** — A customizable, illustrated background only (`LiveSceneView`, `SceneSelectionView`). Furniture-slot customization (chair, rug, lamp, plant, wall art) from the product blueprint is deferred — see MVP Scope.
 - **Ambient Sound** — Optional background audio (`Services/Audio/`) paired with the room.

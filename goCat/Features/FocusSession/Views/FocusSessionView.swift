@@ -20,7 +20,8 @@ struct FocusSessionView: View {
 
     var body: some View {
         ZStack {
-            CatSceneBackground()
+            // Loops for the whole session — the motion is the company.
+            CatSceneBackground(playback: .looping)
 
             VStack(spacing: 0) {
                 Spacer(minLength: 0)
