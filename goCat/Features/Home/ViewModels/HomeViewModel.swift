@@ -11,6 +11,10 @@ final class HomeViewModel {
 
     var selectedScene = SceneOption.study
     var selectedSound = SoundOption.rain
+
+    /// Off means a session runs silently. Sound is optional company, not a
+    /// requirement — some people focus better with nothing at all.
+    var soundEnabled = true
     var selectedMinutes = 25
 
     /// The last value set via the Custom picker, if any. Kept separate from

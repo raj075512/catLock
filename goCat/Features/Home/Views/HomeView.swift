@@ -49,7 +49,10 @@ struct HomeView: View {
             // background (StreakStore) — pick that up now that we're back.
             viewModel.refreshStreak()
         }) {
-            FocusSessionView(session: viewModel.startFocusSession())
+            FocusSessionView(
+                session: viewModel.startFocusSession(),
+                sound: viewModel.soundEnabled ? viewModel.selectedSound : nil
+            )
         }
         .sheet(isPresented: $viewModel.isShowingCustomPicker) {
             CustomDurationPickerView(

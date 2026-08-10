@@ -47,3 +47,54 @@ final class SoundAssetTests: XCTestCase {
         XCTAssertNil(service.currentSound)
     }
 }
+
+/// Regression tests for defects found while wiring the audio up.
+extension SoundAssetTests {
+
+    /// `purr` and `cafe` shipped in earlier builds and were removed. Anyone who
+    /// had one selected still has that ID persisted.
+    func testRemovedSoundIDsFallBackInsteadOfVanishing() {
+        XCTAssertEqual(SoundOption.option(id: "purr"), .rain)
+        XCTAssertEqual(SoundOption.option(id: "cafe"), .rain)
+        XCTAssertEqual(SoundOption.option(id: "nonsense"), .rain)
+    }
+
+    func testKnownSoundIDsStillResolveToThemselves() {
+        for option in SoundOption.options {
+            XCTAssertEqual(SoundOption.option(id: option.id), option)
+        }
+    }
+
+    /// The sound is meant to play *during* a session. It previously only
+    /// previewed in the picker and then went silent the moment focusing began.
+    @MainActor
+    func testSessionStartsAndStopsTheSelectedSound() {
+        let audio = AudioPlayerService.shared
+        audio.stop()
+
+        let viewModel = FocusSessionViewModel(
+            session: FocusSession(plannedDuration: 60, state: .running),
+            sound: .rain
+        )
+
+        viewModel.start()
+        XCTAssertTrue(audio.isPlaying, "Starting a session should start the chosen sound")
+
+        viewModel.cancel()
+        XCTAssertFalse(audio.isPlaying, "Cancelling a session must stop the sound")
+    }
+
+    @MainActor
+    func testSessionWithNoSoundStaysSilent() {
+        let audio = AudioPlayerService.shared
+        audio.stop()
+
+        let viewModel = FocusSessionViewModel(
+            session: FocusSession(plannedDuration: 60, state: .running),
+            sound: nil
+        )
+        viewModel.start()
+
+        XCTAssertFalse(audio.isPlaying, "A session with sound disabled must run silently")
+    }
+}

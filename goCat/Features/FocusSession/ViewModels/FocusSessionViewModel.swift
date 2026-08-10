@@ -7,40 +7,66 @@ final class FocusSessionViewModel {
     var timerService: FocusTimerService
     var session: FocusSession
 
-    /// Set once, the moment the countdown finishes on its own. The streak
-    /// increments here — not in the view — so it happens exactly once no
-    /// matter how many times the completion screen re-renders.
+    /// Set once the timer reaches zero, so the completion screen can show the
+    /// new streak without re-reading the store.
     private(set) var completedStreak: Int?
 
-    init(session: FocusSession = FocusSession(), streakStore: StreakStore = .shared) {
+    /// The ambient loop to run for the duration of the session, if any.
+    private let sound: SoundOption?
+    private let audio: AudioPlayerService
+
+    init(
+        session: FocusSession = FocusSession(),
+        sound: SoundOption? = nil,
+        streakStore: StreakStore = .shared,
+        audio: AudioPlayerService = .shared
+    ) {
         self.session = session
+        self.sound = sound
+        self.audio = audio
         self.timerService = FocusTimerService(duration: session.plannedDuration)
 
         timerService.onComplete = { [weak self] in
-            self?.session.state = .completed
-            self?.session.endedAt = .now
-            self?.completedStreak = streakStore.recordCompletedSession()
+            guard let self else { return }
+            self.session.state = .completed
+            self.session.endedAt = .now
+            self.completedStreak = streakStore.recordCompletedSession()
+            // The trophy should land in silence, not over rain.
+            self.audio.stop()
         }
     }
 
     var formattedRemainingTime: String {
-        let totalSeconds = Int(timerService.remainingSeconds)
-        let minutes = totalSeconds / 60
-        let seconds = totalSeconds % 60
+        let total = Int(timerService.remainingSeconds)
+        let hours = total / 3600
+        let minutes = (total % 3600) / 60
+        let seconds = total % 60
+
+        if hours > 0 {
+            return String(format: "%d:%02d:%02d", hours, minutes, seconds)
+        }
         return String(format: "%02d:%02d", minutes, seconds)
     }
 
     func start() {
         timerService.start()
         session.state = .running
+
+        if let sound {
+            audio.play(sound)
+        }
     }
 
-    /// The only way to end a session before the countdown finishes. There's
-    /// no pause, and no manual "mark complete" — completion only happens by
-    /// letting the countdown reach zero (see `onComplete` above).
     func cancel() {
         timerService.cancel()
         session.state = .cancelled
         session.endedAt = .now
+        audio.stop()
+    }
+
+    /// Belt and braces: if the screen goes away for any reason we did not
+    /// anticipate, the ambient loop must not outlive it.
+    func stopAudio() {
+        audio.stop()
     }
 }

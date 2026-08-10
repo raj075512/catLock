@@ -23,6 +23,16 @@ struct SoundOption: Identifiable, Codable, Hashable {
         isPremium: false
     )
 
+    /// Resolve a persisted ID back to an option, falling back to Rain.
+    ///
+    /// Earlier builds shipped `purr` and `cafe`, which were dropped because
+    /// neither could be synthesised convincingly. Anyone who had one selected
+    /// still has that ID in `UserPreferences`, so a plain lookup would return
+    /// nil and leave them with no sound and no obvious way to fix it.
+    static func option(id: SoundOption.ID) -> SoundOption {
+        options.first { $0.id == id } ?? .rain
+    }
+
     static let options: [SoundOption] = [
         .rain,
         SoundOption(id: "ocean", name: "Ocean", resourceName: "ocean", isPremium: false),

@@ -14,8 +14,8 @@ struct FocusSessionView: View {
 
     @State private var viewModel: FocusSessionViewModel
 
-    init(session: FocusSession = FocusSession()) {
-        _viewModel = State(initialValue: FocusSessionViewModel(session: session))
+    init(session: FocusSession = FocusSession(), sound: SoundOption? = nil) {
+        _viewModel = State(initialValue: FocusSessionViewModel(session: session, sound: sound))
     }
 
     var body: some View {
@@ -35,6 +35,10 @@ struct FocusSessionView: View {
             if viewModel.session.state == .running {
                 viewModel.start()
             }
+        }
+        .onDisappear {
+            // Nothing should keep playing once the session screen is gone.
+            viewModel.stopAudio()
         }
     }
 
