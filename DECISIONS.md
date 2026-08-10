@@ -6,6 +6,25 @@ Why catLock is the way it is. One entry per decision, newest first. Written so t
 
 ---
 
+## 2026-08-10 — Accounts added to the design, but kept optional
+
+**Decision:** sign-up / sign-in screens and a Plan & Billing section are being designed. This **reverses** the "no accounts" position recorded on 2026-08-08.
+
+**Shape of the reversal, which matters more than the reversal itself:**
+- An account is **optional**. Timer, cat, streaks and tasks all work fully signed out. There is no sign-in wall.
+- It is offered once, after a third completed session — never during onboarding. A mandatory account in front of a focus timer is a conversion killer and an App Review 5.1.1 risk.
+- **Sign in with Apple + email one-time code. No passwords.** No Google or Facebook — offering a third-party login would force Sign in with Apple as an equivalent option under Guideline 4.8 anyway, and the extra provider buys nothing. No passwords means no reset flow, no credential storage, and a far smaller breach surface.
+
+**What this costs, and it is not small:**
+- **In-app account deletion becomes mandatory** — Apple requires it to be reachable inside the app, not via a support email. Screen 39 in the wireframe prompt.
+- The privacy policy stops saying "Data Not Collected". `legal/PRIVACY_POLICY.md` Part B activates and the Apple privacy label changes.
+- DPDP age assurance applies for under-18 users, and breach notification (72 hours) becomes a real operational duty.
+- Local-to-cloud data merge becomes a correctness problem. Silently overwriting a 47-session local history with an empty cloud account is the classic way to lose a user permanently — hence the explicit merge screen.
+
+**Still true:** this is design work, not implementation. Nothing is built. The right build order remains `PLAN.md` Tier 0 first — the timer still drifts and the streak still isn't a streak.
+
+---
+
 ## 2026-08-10 — Docs live in the repo, not in a chat
 
 **Decision:** `PLAN.md`, `TESTING.md`, `ONBOARDING.md`, `MONETIZATION.md`, `legal/*` and `CLAUDE.md` are committed alongside the code.

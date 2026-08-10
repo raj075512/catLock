@@ -54,7 +54,7 @@ These are deliberate decisions, not oversights. If a change would break one, say
 - **No cat or chair customization, ever.** One fixed companion. Room background and sound are the only customization.
 - **No tab bar.** `HomeView` is the whole app; everything else is a sheet or lives in the overflow menu.
 - **Cat video plays `.once` on Home, `.looping` during a session.** Motion means "a session is running".
-- **Collects zero user data.** No analytics, no accounts, no network calls. This is a feature — see `legal/PRIVACY_POLICY.md`.
+- **Collects zero user data as built.** No analytics, no accounts, no network calls. This is a feature — see `legal/PRIVACY_POLICY.md`. Optional accounts are *designed* (`design/WIREFRAME_PROMPT.md` §8) but not implemented; if they ever are, the account must stay optional, and in-app account deletion becomes mandatory. See `DECISIONS.md` 2026-08-10.
 
 ---
 

@@ -1,13 +1,15 @@
 # catLock — Wireframe Generation Prompt
 
-Copy everything below the line into Claude. It is written to be self-contained: it carries the design tokens, the product rules and all 33 screens, so you don't have to explain the app first.
+Copy everything below the line into Claude. It is written to be self-contained: it carries the design tokens, the product rules and all 44 screens, so you don't have to explain the app first.
 
-**How to use it:** paste it, and Claude will deliver Section 0–1 first. Reply `next` to get each following section. Asking for all 33 at once produces worse work than eight focused batches.
+**How to use it:** paste it, and Claude will deliver Section 0–1 first. Reply `next` to get each following section. Asking for all 44 at once produces worse work than ten focused batches.
 
 **Defaults I locked in** (you didn't specify, these are reversible — just edit the prompt):
 - Paywall screens **included**, marked as v1.1
 - Cancel is **immediate**, no confirmation dialog — matches the code and the premise
 - All five survey questions **up front**, one continuous progress bar, as you described
+- **Accounts are optional and never block the timer.** Sign-in is offered after a first completed session, not during onboarding — a mandatory account in front of a focus timer is both a conversion killer and an App Review risk
+- **Sign in with Apple plus email one-time code. No passwords**, which removes password reset, credential storage and most of the breach surface
 
 ---
 
@@ -30,7 +32,7 @@ These are deliberate. Do not design around them, and do not "improve" them.
 3. **Cancel discards the session** — sad trash animation, streak unchanged. Completion gets a trophy and streak +1.
 4. **No tab bar.** Home is the entire app. Everything else is a sheet or lives behind a `…` overflow menu.
 5. **No cat or chair customization.** One fixed companion, forever. Only the room background and ambient sound are customisable.
-6. **The app collects no personal data.** No accounts, no sign-in, no email, no social login. Never draw one.
+6. **An account is optional and always skippable.** The timer, the cat, streaks and tasks all work fully signed out. An account exists only to sync across devices and carry a subscription. Never gate the core loop behind sign-in, never show a sign-in wall on launch, and always draw a visible way to continue without one.
 
 ## Design system — use these exact values
 
@@ -134,7 +136,11 @@ Large title 34 bold rounded · Title 24 semibold rounded · Headline 17 semibold
 
 **26. Progress, empty** — no sessions ever completed. The chart still renders as an empty frame rather than vanishing, so the screen doesn't collapse.
 
-**27. Settings** — grouped list: Sounds · Accessibility · About. Below them, *Replay intro*. Leave a clearly marked slot where **Manage Subscription** will sit in v1.1.
+**27. Settings** — grouped list. **The first group is account and money, because that is what people open Settings looking for:**
+- **Account** — shows the signed-in email, or *"Sign in"* with a subtitle *"Sync across your devices"* when signed out
+- **Plan & Billing** — right-hand detail text reads *Free* or *Plus · renews 4 Sep*
+
+Then a second group: Sounds · Accessibility · About. Then *Replay intro*. Draw both the signed-in and signed-out variants of the top group.
 
 **28. About** — app name, version, a one-line description, and a **Licences** row. Legal links: **Privacy Policy** and **Terms of Use**, both required.
 
@@ -154,9 +160,49 @@ These have hard legal constraints. Follow them exactly; they are App Store rejec
 
 ---
 
-### Section 8 · States that break layouts (1 screen, 3 panels)
+### Section 8 · Accounts (8 screens)
 
-**33.** Side-by-side variants of **Home**:
+Accounts are **optional**. Everything here is reachable from Settings → Account, or from one soft prompt after a completed session. There is no sign-in wall anywhere in this app.
+
+**33. Soft account prompt** — appears once, on the session-complete screen after the user's third completed session. A short line — *"Keep your streak safe across devices?"* — with **Create an account** and an equally visible **Not now**. Both buttons must have the same visual weight. Dismissing must never re-prompt on the next session.
+
+**34. Sign in / Sign up — combined** — one screen, not two. Modern apps do not make the user declare in advance whether they are new; the system works that out from the email. Layout:
+- Wordmark and a single line of value: *"Sync your sessions across devices."*
+- **Sign in with Apple** — black capsule, full width, Apple's exact wording and logo. This is the primary action and must be the top option.
+- **Continue with email** — secondary capsule, `surface` fill with a `primary` border.
+- **Continue without an account** — a plain text button, always visible, never greyed out.
+- Beneath: *"By continuing you agree to our Terms and Privacy Policy"*, both words linked.
+- No password field anywhere. No Google or Facebook buttons — if you draw one, Apple's Guideline 4.8 forces Sign in with Apple to appear as an equivalent option, and the extra provider buys nothing here.
+
+**35. Email entry** — one field, keyboard type email, a single **Continue** button, and a back chevron. Explain what happens next in caption: *"We'll send you a 6-digit code. No password to remember."*
+
+**36. Code entry** — six single-character boxes, auto-advancing. Shows the address it was sent to with an **edit** affordance. A **Resend code** text button that is disabled with a countdown for 30 seconds. Include the error state: wrong code, field boxes outlined in `danger`, one plain line of help text.
+
+**37. Local data merge** — the screen most apps get wrong and then lose data over. On first sign-in, if local sessions exist: *"We found 47 sessions and a 12-day streak on this device. Keep them?"* with **Keep my data** as the primary action and **Start fresh** as a quieter secondary. Never merge silently, and never overwrite local history with an empty cloud account.
+
+**38. Account — signed in** — Settings → Account. Shows the email address (or the Apple private relay address, in which case add a caption explaining what that is), the sign-in method, the date joined, sync status, **Sign out**, and at the bottom, visually separated, **Delete account** in `danger`.
+
+**39. Delete account — confirmation** — Apple requires account deletion to be reachable inside the app, not by emailing support. This screen must state plainly what is destroyed and what is not: sessions, streak, tasks and account are deleted permanently; **an active subscription is not cancelled by deleting the account** and must be cancelled separately through Apple. Require typing DELETE or an equivalent deliberate action. Primary button in `danger`, cancel as the safe default.
+
+**40. Signed-out / sync error** — the account row when a token has expired, plus an inline banner pattern for a failed sync. Copy must make clear that **local data is safe and nothing has been lost**, because that is the user's first fear.
+
+---
+
+### Section 9 · Plan & billing (3 screens)
+
+Reached from Settings → Plan & Billing. These have the same hard legal constraints as the paywall.
+
+**41. Plan & Billing — free user** — a card showing **Current plan: Free**, a short list of what Free includes, then what Plus adds. One primary **Upgrade to Plus** capsule that opens screen 30. Below it, a **Restore Purchases** text button — this must be reachable without an account, because entitlements live with the Apple ID.
+
+**42. Plan & Billing — Plus active** — card reads **catLock Plus · Yearly**, with **Renews 4 September 2027 · ₹999/year** stated explicitly in body text, not caption. Then: **Manage Subscription** (opens the system sheet — one tap to reach cancellation), **Restore Purchases**, and links to **Terms** and **Privacy**. No retention offer, no discount interstitial, no "are you sure" gauntlet anywhere on the path out.
+
+**43. Plan & Billing — in trial or lapsed** — two variants on one artboard. *In trial:* **Free trial · ends 4 September**, with the converting price stated in full and a **Manage Subscription** action. *Lapsed:* **Plus expired**, a plain statement that their data is untouched, and a single **Resubscribe** action. Never use urgency, countdown pressure or streak-loss threats on either.
+
+---
+
+### Section 10 · States that break layouts (1 screen, 3 panels)
+
+**44.** Side-by-side variants of **Home**:
 - **Reduce Motion** — static poster instead of the video. Is the glass panel still legible?
 - **Largest Dynamic Type** — accessibility text sizes. Show what happens to a four-chip duration row that already fits tightly, and propose the reflow.
 - **Notifications denied** — how the app behaves with no completion alert.
