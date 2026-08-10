@@ -1,6 +1,12 @@
 import AVFoundation
 import Foundation
 import Observation
+// Required explicitly: the target builds with
+// SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY, so `os`'s string-
+// interpolation members (the `privacy:` argument on Logger messages) are not
+// visible transitively through AppLogger. Every other file that logs imports
+// this for the same reason.
+import os
 
 /// Plays one bundled ambient loop at a time.
 ///
@@ -19,9 +25,11 @@ final class AudioPlayerService {
     private(set) var isPlaying = false
 
     /// User-facing level, 0...1. Persisted by the caller, not here.
-    var volume: Float = 0.7 {
-        didSet { applyVolume() }
-    }
+    ///
+    /// Set through `setVolume(_:)` rather than a `didSet` observer — property
+    /// observers on `@Observable` stored properties interact badly with the
+    /// macro's generated accessors, and an explicit method is clearer anyway.
+    private(set) var volume: Float = 0.7
 
     private var player: AVAudioPlayer?
     private var isSessionActive = false
@@ -34,7 +42,7 @@ final class AudioPlayerService {
 
     func play(_ sound: SoundOption) {
         guard let url = Bundle.main.url(forResource: sound.resourceName, withExtension: "m4a") else {
-            AppLogger.app.error("Missing bundled audio asset: \(sound.resourceName, privacy: .public).m4a")
+            AppLogger.audio.error("Missing bundled audio asset: \(sound.resourceName, privacy: .public).m4a")
             return
         }
 
@@ -54,7 +62,7 @@ final class AudioPlayerService {
             currentSound = sound
             isPlaying = true
         } catch {
-            AppLogger.app.error("Could not start audio: \(error.localizedDescription, privacy: .public)")
+            AppLogger.audio.error("Could not start audio: \(error.localizedDescription, privacy: .public)")
             stop()
         }
     }
@@ -74,6 +82,11 @@ final class AudioPlayerService {
         } else {
             play(sound)
         }
+    }
+
+    func setVolume(_ newValue: Float) {
+        volume = min(max(newValue, 0), 1)
+        applyVolume()
     }
 
     private func applyVolume() {
@@ -100,7 +113,7 @@ final class AudioPlayerService {
             try AVAudioSession.sharedInstance().setActive(true)
             isSessionActive = true
         } catch {
-            AppLogger.app.error("Could not activate audio session: \(error.localizedDescription, privacy: .public)")
+            AppLogger.audio.error("Could not activate audio session: \(error.localizedDescription, privacy: .public)")
         }
     }
 

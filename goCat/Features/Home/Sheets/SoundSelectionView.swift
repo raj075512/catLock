@@ -5,7 +5,10 @@ import SwiftUI
 struct SoundSelectionView: View {
     @Binding var selection: SoundOption
 
-    @State private var audio = AudioPlayerService.shared
+    // Not `@State`: this is a shared singleton the view observes, not state the
+    // view owns. `@Observable` tracks any property read inside `body`, so
+    // updates still arrive.
+    private let audio = AudioPlayerService.shared
 
     var body: some View {
         VStack(spacing: 0) {
@@ -46,8 +49,11 @@ struct SoundSelectionView: View {
             Image(systemName: "speaker.fill")
                 .foregroundStyle(AppColors.textSecondary)
 
-            Slider(value: Binding(get: { audio.volume }, set: { audio.volume = $0 }), in: 0...1)
-                .tint(AppColors.primary)
+            Slider(
+                value: Binding(get: { audio.volume }, set: { audio.setVolume($0) }),
+                in: 0...1
+            )
+            .tint(AppColors.primary)
 
             Image(systemName: "speaker.wave.3.fill")
                 .foregroundStyle(AppColors.textSecondary)
