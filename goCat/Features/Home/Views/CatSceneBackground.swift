@@ -2,14 +2,24 @@ import SwiftUI
 import UIKit
 
 /// The full-bleed cat scene that sits behind the landing screen and the active
-/// session. Using one component for both means the artwork never jumps or
-/// reloads when a session starts — only the controls layered on top change.
+/// session. Using one component for both keeps the artwork identical across
+/// the two screens — only the controls layered on top change.
 ///
-/// `isAnimated` lets the caller choose the looping video (during a session, and
-/// on the landing screen) versus the static poster frame. Reduce Motion always
-/// wins and forces the poster.
+/// `playback` is what differs between them:
+/// - Landing screen passes `.once`. The clip plays through a single time and
+///   holds on its last frame, so the scene settles down while the user picks a
+///   duration.
+/// - An active session passes `.looping`, the original endless rocking.
+///
+/// Note that the session screen is a `fullScreenCover`, so it builds its own
+/// player starting from frame 0 rather than inheriting the landing screen's
+/// paused one. The clip is authored as a seamless loop (last frame meets first
+/// frame), which is what keeps that handover from reading as a cut.
+///
+/// `isAnimated` still forces the static poster, and Reduce Motion always wins.
 struct CatSceneBackground: View {
     var isAnimated: Bool = true
+    var playback: CatSceneVideo.Playback = .looping
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -20,7 +30,7 @@ struct CatSceneBackground: View {
             Color(red: 0.60, green: 0.65, blue: 0.60)
 
             if isAnimated && !reduceMotion {
-                LoopingCatVideo()
+                CatSceneVideo(playback: playback)
             } else {
                 CatScenePoster()
             }
@@ -58,5 +68,5 @@ struct CatScenePoster: View {
 }
 
 #Preview {
-    CatSceneBackground()
+    CatSceneBackground(playback: .once)
 }
