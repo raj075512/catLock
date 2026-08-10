@@ -47,3 +47,6 @@ fastlane/report.xml
 fastlane/Preview.html
 fastlane/screenshots/**/*.png
 fastlane/test_output
+
+# Claude Code — local overrides (not shared)
+.claude/settings.local.json
