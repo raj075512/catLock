@@ -13,7 +13,7 @@ struct NotificationPermissionPage: View {
                 .font(AppFonts.title)
                 .foregroundStyle(AppColors.textPrimary)
 
-            Text("GoCat can remind you when a focus block is complete.")
+            Text("catLock can remind you when a focus block is complete.")
                 .font(AppFonts.body)
                 .foregroundStyle(AppColors.textSecondary)
                 .multilineTextAlignment(.center)

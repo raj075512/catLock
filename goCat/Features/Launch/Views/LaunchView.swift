@@ -12,7 +12,7 @@ struct LaunchView: View {
                     .font(.system(size: 56, weight: .semibold))
                     .foregroundStyle(AppColors.primary)
 
-                Text("GoCat")
+                Text("catLock")
                     .font(AppFonts.largeTitle)
                     .foregroundStyle(AppColors.textPrimary)
             }

@@ -9,7 +9,7 @@ struct WelcomePage: View {
                 .font(.system(size: 72, weight: .regular))
                 .foregroundStyle(AppColors.primary)
 
-            Text("GoCat")
+            Text("catLock")
                 .font(AppFonts.largeTitle)
                 .foregroundStyle(AppColors.textPrimary)
 

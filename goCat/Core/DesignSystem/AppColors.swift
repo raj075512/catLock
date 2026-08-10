@@ -14,4 +14,17 @@ enum AppColors {
     /// a clear red (distinct from `warning`'s burnt orange) so a running
     /// timer reads as urgent at a glance.
     static let danger = Color(hex: "#D14343")
+
+    // MARK: - Onboarding
+
+    /// Onboarding sits on a full-bleed green field rather than the app's warm
+    /// off-white, so first-run reads as a distinct moment and the product
+    /// proper feels like arriving somewhere calmer. Both tones are pulled
+    /// toward `primary`/`accent` so it still belongs to the same palette.
+    static let onboardingTop = Color(hex: "#4E8C63")
+    static let onboardingBottom = Color(hex: "#22503C")
+
+    /// Text and controls sitting on the onboarding field.
+    static let onOnboarding = Color(hex: "#FFFFFF")
+    static let onOnboardingMuted = Color(hex: "#D3E4D8")
 }

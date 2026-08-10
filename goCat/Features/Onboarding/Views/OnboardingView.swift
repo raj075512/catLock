@@ -5,16 +5,23 @@ struct OnboardingView: View {
     @State private var viewModel = OnboardingViewModel()
 
     var body: some View {
-        VStack {
-            Spacer()
-
-            currentPage
-                .padding(AppSpacing.large)
-
-            Spacer()
+        Group {
+            switch viewModel.currentStep {
+            case .howItWorks:
+                // Draws its own full-bleed field, so it gets the whole screen
+                // rather than being centred inside a padded container.
+                currentPage
+            default:
+                VStack {
+                    Spacer()
+                    currentPage
+                        .padding(AppSpacing.large)
+                    Spacer()
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(AppColors.background)
+            }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(AppColors.background)
     }
 
     @ViewBuilder
@@ -22,6 +29,8 @@ struct OnboardingView: View {
         switch viewModel.currentStep {
         case .welcome:
             WelcomePage(onContinue: viewModel.advance)
+        case .howItWorks:
+            HowItWorksPage(onContinue: viewModel.advance)
         case .focusGoal:
             FocusGoalPage(onContinue: viewModel.advance)
         case .notifications:

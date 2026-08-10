@@ -6,6 +6,8 @@ import Observation
 final class OnboardingViewModel {
     enum Step: Int, CaseIterable {
         case welcome
+        /// Sets the no-pause expectation before the user can hit it.
+        case howItWorks
         case focusGoal
         case notifications
     }
