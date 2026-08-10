@@ -35,7 +35,7 @@ struct CustomizationSheet: View {
                 case .room:
                     SceneSelectionView(selection: $viewModel.selectedScene)
                 case .sound:
-                    SoundSelectionView(selection: $viewModel.selectedSound)
+                    SoundSelectionView(viewModel: viewModel)
                 }
             }
             .navigationTitle(kind.title)

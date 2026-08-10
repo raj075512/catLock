@@ -54,6 +54,11 @@ final class FocusSessionViewModel {
 
         if let sound {
             audio.play(sound)
+        } else {
+            // A silent session has to actually be silent. Without this, a
+            // preview still running from the Sounds sheet would carry straight
+            // into a session the user chose to run without sound.
+            audio.stop()
         }
     }
 

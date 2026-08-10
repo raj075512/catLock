@@ -51,7 +51,7 @@ struct HomeView: View {
         }) {
             FocusSessionView(
                 session: viewModel.startFocusSession(),
-                sound: viewModel.soundEnabled ? viewModel.selectedSound : nil
+                sound: viewModel.sessionSound
             )
         }
         .sheet(isPresented: $viewModel.isShowingCustomPicker) {

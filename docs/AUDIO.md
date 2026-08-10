@@ -45,6 +45,23 @@ Two things learned the hard way here, worth not rediscovering:
 - **LUFS is a poor yardstick for noise colours.** K-weighting heavily discounts bass, so a true −6 dB/octave brown noise measured −44 LUFS at full scale. Forcing it to −23 demanded ~20 dB of gain, which clipped and then got mangled by the limiter. The fix was musical, not technical: slope 1.6 instead of 2.0, high-passed at 40 Hz. Still unmistakably brown, but the energy sits where ears are rather than in inaudible rumble.
 - **`gainTrim` exists because loudness matching for noise is ultimately a judgement call.** The values in `SoundOption` are starting points measured by meter, not by ear. **Tune them on a real device, in a quiet room, at low volume**, and commit the result.
 
+## Which sound plays, and when
+
+There is **always** a selected sound — Rain by default — so a session never
+starts silent by accident. `HomeViewModel` restores the choice from
+`UserPreferences.selectedSoundID` on launch and writes it back on every change;
+before this it was never read or written, so the choice was lost on every
+relaunch.
+
+Silence is a deliberate choice, not an accident: the Sounds sheet has an
+**Ambient sound** toggle backed by `soundEnabled`. When it is off,
+`sessionSound` is nil and `FocusSessionViewModel.start()` calls `stop()` —
+which matters, because otherwise a preview still running from the sheet would
+carry straight into a session the user chose to run in silence.
+
+A stored ID from a build that had `purr` or `cafe` falls back to Rain via
+`SoundOption.option(id:)` rather than leaving the user with nothing.
+
 ## Audio session behaviour — read this before shipping
 
 `AudioPlayerService` uses **`.ambient` with `.mixWithOthers`**:
@@ -69,6 +86,8 @@ python3 scripts/synth_audio.py --encode   # normalise + encode to .m4a
 Requires `numpy` and `ffmpeg`. The random seed is fixed at 7, so output is reproducible — change the seed for different rain.
 
 ## Testing checklist
+
+**Route audit** — `python3 scripts/audit_routes.py` checks unreachable screens, sheets with no way out, presentation flags that are never raised, missing imports, and every `SoundOption` resolving to a bundled file. It exits non-zero, so CI can gate on it. This is the closest thing to clicking every button that is available without a Swift toolchain.
 
 **Automated** (`goCatTests/SoundAssetTests.swift`) — every `SoundOption` has a bundled file, every file decodes, is longer than 30s and is mono, `gainTrim` values are sane, and toggling the same sound twice stops it. These exist because the old `AudioPlayerServiceTests` asserted that a Bool flipped and stayed green for weeks while the folder was empty.
 

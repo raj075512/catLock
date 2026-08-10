@@ -10,11 +10,6 @@ final class HomeViewModel {
     static let durationPresets = [15, 25, 45]
 
     var selectedScene = SceneOption.study
-    var selectedSound = SoundOption.rain
-
-    /// Off means a session runs silently. Sound is optional company, not a
-    /// requirement — some people focus better with nothing at all.
-    var soundEnabled = true
     var selectedMinutes = 25
 
     /// The last value set via the Custom picker, if any. Kept separate from
@@ -23,20 +18,65 @@ final class HomeViewModel {
     var customMinutes: Int?
     var isShowingCustomPicker = false
 
-    private let streakStore: StreakStore
-
-    init(streakStore: StreakStore = .shared) {
-        self.streakStore = streakStore
-        self.currentStreak = streakStore.currentStreak
-    }
+    /// There is always a selected sound — Rain by default — so a session never
+    /// starts silent by accident. Silence is a deliberate choice via
+    /// `soundEnabled`, not the result of never having picked one.
+    private(set) var selectedSound: SoundOption
+    private(set) var soundEnabled: Bool
 
     private(set) var currentStreak: Int
+
+    private let streakStore: StreakStore
+    private let settingsStore: SettingsStore
+
+    init(streakStore: StreakStore = .shared, settingsStore: SettingsStore = .shared) {
+        self.streakStore = streakStore
+        self.settingsStore = settingsStore
+        self.currentStreak = streakStore.currentStreak
+
+        // Restore the previous choice. `option(id:)` falls back to Rain, which
+        // matters for anyone whose stored ID is `purr` or `cafe` — sounds that
+        // shipped in earlier builds and no longer exist.
+        let preferences = settingsStore.loadUserPreferences()
+        self.selectedSound = SoundOption.option(id: preferences.selectedSoundID)
+        self.soundEnabled = preferences.soundEnabled
+    }
+
+    // MARK: - Sound
+
+    func selectSound(_ sound: SoundOption) {
+        selectedSound = sound
+        persistSoundPreferences()
+    }
+
+    /// Set through a method rather than a `didSet` observer — property
+    /// observers collide with the `@Observable` macro's generated accessors.
+    func setSoundEnabled(_ isEnabled: Bool) {
+        soundEnabled = isEnabled
+        persistSoundPreferences()
+    }
+
+    /// The loop a session should run, or nil for silence.
+    var sessionSound: SoundOption? {
+        soundEnabled ? selectedSound : nil
+    }
+
+    private func persistSoundPreferences() {
+        var preferences = settingsStore.loadUserPreferences()
+        preferences.selectedSoundID = selectedSound.id
+        preferences.soundEnabled = soundEnabled
+        settingsStore.saveUserPreferences(preferences)
+    }
+
+    // MARK: - Streak
 
     /// Call after a focus session sheet dismisses — a completed session may
     /// have bumped the streak in the background via `StreakStore`.
     func refreshStreak() {
         currentStreak = streakStore.currentStreak
     }
+
+    // MARK: - Duration
 
     var isCustomSelected: Bool {
         customMinutes != nil && selectedMinutes == customMinutes
