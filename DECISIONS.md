@@ -6,6 +6,22 @@ Why catLock is the way it is. One entry per decision, newest first. Written so t
 
 ---
 
+## 2026-08-10 — Trial-led pricing at $6.59/wk, $19.99/mo, $79.99/yr
+
+**Decision:** catLock Plus becomes trial-led — 7 days free on every tier — at prices roughly 8–11× the earlier $29.99/year plan.
+
+**Shape of it:**
+- Home's primary button becomes **"Try 7 days free"**, but **"Start a free session" sits directly beneath it and always works.** Locking the timer behind payment would hit Guideline 4.2 and 3.1.2, and it contradicts the whole ADHD-friendly premise: a payment demand between someone and a timer is exactly the friction this app exists to remove.
+- Tapping a Plus sound raises a sheet naming that sound, with two actions only: start the trial, or Not now.
+- When the trial lapses, one "Keep your streak safe" screen. It leads with the streak, states that data stays either way, and offers "Keep using catLock free" as a real option. **The streak is never threatened** — that converts marginally better and earns one-star reviews from the exact audience being courted.
+- Annual added at $79.99 and preselected. It anchors the others: against $79.99/year, $6.59/week reads as the expensive convenience option.
+
+**Risk accepted, stated plainly:** $6.59/week annualises to ~$343. That is the pricing band Apple scrutinises hardest under 3.1.2, and the pattern — aggressive weekly price plus thin functionality — is one Apple has been removing apps for. The mitigations are the free session on Home, an immaculate paywall, and 48-hour trial reminders. Watch the refund rate; sustained refunds on weekly are the signal that draws attention.
+
+**Superseded:** the 2026-08-10 entry recommending $4.99/mo and $29.99/yr with a paywall after two completed sessions.
+
+---
+
 ## 2026-08-10 — Accounts added to the design, but kept optional
 
 **Decision:** sign-up / sign-in screens and a Plan & Billing section are being designed. This **reverses** the "no accounts" position recorded on 2026-08-08.

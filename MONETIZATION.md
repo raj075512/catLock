@@ -29,20 +29,26 @@ The blueprint already reached this conclusion and it holds up. Focus apps have a
 
 ## 2. Pricing
 
-Blueprint pricing, which I'd keep with one addition:
+**Trial-led, three tiers, annual preselected.**
 
-| Product | US | India | Notes |
+| Product | Price | Per week | Trial |
 |---|---|---|---|
-| Free | $0 | ₹0 | 3 sounds, 15/25/45 durations, basic streak, one room |
-| **catLock Plus** monthly | $4.99 | ₹199 | |
-| **catLock Plus** yearly | $29.99 | ₹999 | ~50% off monthly; make this the default selection |
-| Lifetime | — | — | Defer. Revisit only after 6 months of retention data. |
+| catLock Plus — weekly | **$6.59 / week** | $6.59 | 7 days free |
+| catLock Plus — monthly | **$19.99 / month** | ~$4.61 | 7 days free |
+| catLock Plus — annual | **$79.99 / year** | ~$1.54 | 7 days free, **preselected** |
 
-**Additions to the blueprint:**
+India gets localised pricing set through App Store Connect's tier system rather than a direct conversion — a straight FX conversion of $79.99 is far above what that market converts at.
 
-- **Offer a 7-day free trial on the yearly plan only.** Trials on monthly plans mostly convert people who would have paid anyway. On yearly, the trial is what makes the higher price tolerable.
-- **Set yearly as the pre-selected option** with the monthly price shown as a per-month comparison ("$2.50/mo billed yearly"). This is standard and it works.
-- **India pricing is aggressive but correct.** ₹999/yr is roughly $12 — well below the US price. That's appropriate for the market; do not try to charge US prices in India, it just produces zero conversions.
+### Read this before you commit to weekly pricing
+
+Weekly at $6.59 annualises to about **$343/year**; monthly to **$240**. That is 8–11× the $29.99/year this document previously recommended, and it puts catLock in the pricing band Apple scrutinises hardest.
+
+- **Guideline 3.1.2 requires ongoing value.** A high weekly price on a timer app invites the reviewer to ask what recurring value justifies it. Have an answer: the sound library, room themes, stats, and widget.
+- **Apple has been actively removing apps** that pair an aggressive weekly price with a hard paywall and thin functionality. The paywall must be immaculate — see §4.
+- **Weekly subscribers churn fastest** in this category. Expect most weekly signups to be gone inside a month; the annual tier is where lifetime value comes from, which is why it is preselected.
+- **Watch your refund rate.** Sustained high refunds on weekly plans is the signal that draws attention.
+
+The annual tier exists partly to anchor: against $79.99/year, $6.59/week reads as the expensive convenience option, which is exactly how it should read.
 
 ### What Apple actually takes
 
@@ -50,7 +56,7 @@ Blueprint pricing, which I'd keep with one addition:
 - The **App Store Small Business Program** puts you at **15% from day one** if you earned under $1M in the prior calendar year — which is you. ([Apple](https://developer.apple.com/app-store/small-business-program/), [RevenueCat](https://www.revenuecat.com/blog/engineering/small-business-program))
 - **Enrol in the Small Business Program before your first sale.** It is a form, it takes minutes, and it doubles your effective margin. This is the highest-return 15 minutes in this entire document.
 
-At 15%, a $29.99 yearly subscription nets you about $25.49.
+At 15%, a $79.99 yearly subscription nets you about $67.99, a $19.99 month about $16.99, and a $6.59 week about $5.60.
 
 ---
 
@@ -76,6 +82,40 @@ The hard part. Gate too much and the free app can't demonstrate value; gate too 
 A note on gating the custom duration picker: it is currently free and prominent on the landing screen. Moving a shipped free feature behind a paywall generates real anger. **Decide before v1.0 ships**, not after. If you're unsure, ship it free and gate the *2-hour+* range later instead — extending a limit reads very differently from taking something away.
 
 ---
+
+## 3a. The trial, end to end
+
+**Seven days free on every tier.** The trial is the primary conversion mechanism, so the three moments below matter more than the paywall itself.
+
+### Home — trial-forward, never a wall
+
+The Home CTA reads **"Try 7 days free"** with *"then $19.99/month · cancel any time"* beneath it. Directly under that sits **"Start a free session"** as a plain text button.
+
+That second button is not optional. Starting a focus session must never require a subscription:
+
+- **Guideline 4.2 (minimum functionality)** and **3.1.2** both bite when an app's core purpose is locked behind payment before any value is shown.
+- The audience is people who struggle to start tasks. A payment demand between them and a timer is precisely the friction the product exists to remove.
+- It is also worse economically. Trial starts from people who have never felt the product convert badly and refund often.
+
+### Locked sounds raise the offer, and always offer a way out
+
+Tapping a Plus sound presents a sheet naming the specific thing they wanted — *"Fireplace is part of Plus"* — with exactly two actions: **Try 7 days free**, and **Not now**. Never a dead end, never a dismissal that is hard to find, never a second prompt in the same session after they decline.
+
+This is the highest-intent paywall in the app. Someone who taps Fireplace has told you what they want.
+
+### Trial ended — "Keep your streak safe"
+
+The conversion screen, shown once when the trial lapses. It leads with the streak they built, not with the price, and states plainly:
+
+> Your 7 free days are up. Your sessions, tasks and 12-day streak are still here — they stay whether or not you subscribe.
+
+Then annual and monthly, **Continue with Plus**, and **Keep using catLock free** as a real, visible option.
+
+**Do not threaten the streak.** "Subscribe or lose your progress" converts a little better and earns one-star reviews from exactly the audience you are courting. Deleting someone's history because a card expired is also the kind of thing that generates refund requests and, for an app marketed to people with ADHD, is straightforwardly unkind.
+
+### Trial reminders are not optional here
+
+At $6.59/week, an unexpected charge is the difference between a subscriber and a chargeback. Schedule a local notification **48 hours before conversion** stating the amount and the date, show an in-app banner for anyone who declined notifications, and keep the conversion date visible in Settings for the whole trial. See `legal/COMPLIANCE.md` §3.
 
 ## 4. Paywall placement
 
