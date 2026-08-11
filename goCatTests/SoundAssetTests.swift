@@ -73,8 +73,9 @@ extension SoundAssetTests {
         audio.stop()
 
         let viewModel = FocusSessionViewModel(
-            session: FocusSession(plannedDuration: 60, state: .running),
-            sound: .rain
+            minutes: 1,
+            sound: .rain,
+            room: .livingRoom
         )
 
         viewModel.start()
@@ -90,8 +91,9 @@ extension SoundAssetTests {
         audio.stop()
 
         let viewModel = FocusSessionViewModel(
-            session: FocusSession(plannedDuration: 60, state: .running),
-            sound: nil
+            minutes: 1,
+            sound: nil,
+            room: .livingRoom
         )
         viewModel.start()
 

@@ -173,6 +173,85 @@ Why catLock is the way it is. One entry per decision, newest first. Written so t
 
 ---
 
+## 2026-08-11 — Baseline onboarding chosen over v2 and v3
+
+**Decision:** implement the baseline 10-screen onboarding (wireframes 1–10), not v2's
+six-screen cut and not v3's dark amber direction.
+
+**Why:** v3 replaces the entire palette — the handoff says so itself ("it is a direction, not
+a patch"), and adopting it means re-tokenising every screen in the app. v2 is genuinely
+shorter and its 60-second taster is a better teacher than a text screen, but it was drawn
+after the baseline was approved and reopening the flow was not what this build was for.
+The baseline keeps the locked light design system, so nothing else had to change.
+
+**Revisit if** first-session completion is weak in beta. v2 exists, fully specified, and the
+survey code is already structured to drop questions.
+
+---
+
+## 2026-08-11 — A running session survives force-quit and reboot
+
+**Decision:** the end date of a running session is persisted (`ActiveSessionStore`). Relaunching
+mid-session drops straight back into it; relaunching after it would have ended shows the
+completion screen and records it.
+
+**Why:** the handoff left this undefined and warned that silence here becomes a bug report.
+A session already survives backgrounding, and "leaving the app keeps the timer running" has to
+mean the same thing whether the user swiped up to the Home screen or swiped the app away.
+Discarding it would make force-quit the one escape hatch the product deliberately doesn't
+offer — which is rule 1 with a loophole.
+
+---
+
+## 2026-08-11 — The timer derives from a wall-clock end date
+
+**Decision:** `FocusTimerService.remainingSeconds` is always `endDate - now`. The tick exists
+only to give SwiftUI something to redraw against.
+
+**Why:** the previous implementation decremented a counter once per `Task.sleep(1s)`. iOS
+suspends a backgrounded app's tasks, so time spent away simply didn't count: a 25-minute
+session could take an hour of wall clock and the number on screen was fiction. Covered by
+`FocusTimerServiceTests.testTimeElapsedWhileSuspendedStillCounts`.
+
+---
+
+## 2026-08-11 — The streak counts days, not sessions
+
+**Decision:** `StreakState` holds `{ current, best, lastCompletedDay }`. A completion
+increments at most once per local day, and the displayed value reads as zero once a whole day
+is missed.
+
+**Why:** the old store incremented a counter per completed session, so three sessions in one
+afternoon displayed "3 day streak". Cancelling still never touches it — that promise is made
+in the copy on two separate screens, so it needs to be true.
+
+**Migration:** the old bare counter is carried over as a best-effort current streak ending
+today rather than resetting existing users to zero.
+
+---
+
+## 2026-08-11 — SwiftData, and the Core Data model deleted
+
+**Decision:** one SwiftData container holding `CompletedSession` and `TaskItem`. The unused
+Core Data model, its entity mappings, `PersistenceController`, `SessionStore`,
+`TimerPersistenceService` and the template `Item` are all gone.
+
+**Why:** this was listed as an open decision below and had been blocking every persistence
+task. Two half-present stacks is worse than either one. SwiftData is what the container was
+already declared with, and no feature here needs anything Core Data does better.
+
+---
+
+## 2026-08-11 — Deployment target dropped to iOS 17.0
+
+**Decision:** `IPHONEOS_DEPLOYMENT_TARGET` 26.5 → 17.0.
+
+**Why:** 26.5 restricted the app to the newest iOS release — it would not even install on a
+26.4 simulator. 17.0 is the genuine floor: `@Observable`, SwiftData and
+`contentTransition(.numericText)` all require it, and nothing in the app needs more.
+
+---
+
 ## Open decisions — not yet made
 
 These need an answer before launch. Listed so they don't get forgotten.
@@ -182,6 +261,5 @@ These need an answer before launch. Listed so they don't get forgotten.
 | **Does the app get renamed?** A live "Cat Lock" exists in the same App Store category. | Icon, domain, marketing, App Store record | `legal/IP_CLEARANCE.md` |
 | Individual vs registered entity as App Store publisher? Individual publishes under your personal legal name, visible worldwide. | App Store Connect record | `legal/TERMS_OF_USE.md` §1 |
 | Is the custom duration picker free or Plus? | Paywall design | `MONETIZATION.md` |
-| SwiftData or Core Data? Both are half-present. | All persistence work | `PLAN.md` Tier 0 |
 | Is iPad supported? `TARGETED_DEVICE_FAMILY` allows it; nothing was designed for it. | Layout, screenshots | `TESTING.md` |
 | Ship free first and add Plus in v1.1, or launch paid? | Whole roadmap | `PLAN.md` §5 |

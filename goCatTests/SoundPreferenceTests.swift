@@ -4,8 +4,21 @@ import XCTest
 /// The sound choice used to be thrown away on every launch: `selectedSoundID`
 /// existed in UserPreferences and nothing read or wrote it. These pin the
 /// behaviour down.
+///
+/// Silence is now modelled as `nil` rather than a separate `soundEnabled`
+/// flag, which is what the Sounds sheet needs: tapping the selected row
+/// deselects it, and there is no "None" row to select instead.
 @MainActor
 final class SoundPreferenceTests: XCTestCase {
+
+    private func freshState() -> AppState {
+        let defaults = UserDefaults(suiteName: "SoundPreferenceTests-\(UUID().uuidString)")!
+        return AppState(settingsStore: SettingsStore(store: UserDefaultsStore(defaults: defaults)))
+    }
+
+    private func state(sharing store: SettingsStore) -> AppState {
+        AppState(settingsStore: store)
+    }
 
     private func freshStore() -> SettingsStore {
         let defaults = UserDefaults(suiteName: "SoundPreferenceTests-\(UUID().uuidString)")!
@@ -13,63 +26,59 @@ final class SoundPreferenceTests: XCTestCase {
     }
 
     func testThereIsAlwaysADefaultSound() {
-        let viewModel = HomeViewModel(settingsStore: freshStore())
+        let state = freshState()
 
-        XCTAssertEqual(viewModel.selectedSound, .rain,
-                       "A user who never opens the Sounds sheet must still get a sound")
-        XCTAssertTrue(viewModel.soundEnabled)
-        XCTAssertEqual(viewModel.sessionSound, .rain)
+        XCTAssertEqual(
+            state.selectedSound,
+            .rain,
+            "A user who never opens the Sounds sheet must still get a sound"
+        )
     }
 
     func testChoiceSurvivesRelaunch() {
         let store = freshStore()
         let ocean = SoundOption.options.first { $0.id == "ocean" }!
 
-        let first = HomeViewModel(settingsStore: store)
-        first.selectSound(ocean)
+        state(sharing: store).selectSound(ocean)
 
-        let relaunched = HomeViewModel(settingsStore: store)
-        XCTAssertEqual(relaunched.selectedSound, ocean, "The sound choice must outlive the process")
+        XCTAssertEqual(
+            state(sharing: store).selectedSound,
+            ocean,
+            "The sound choice must outlive the process"
+        )
     }
 
     func testSilenceSurvivesRelaunch() {
         let store = freshStore()
 
-        let first = HomeViewModel(settingsStore: store)
-        first.setSoundEnabled(false)
-        XCTAssertNil(first.sessionSound, "Sound off means a session runs silently")
+        let first = state(sharing: store)
+        first.selectSound(nil)
+        XCTAssertNil(first.selectedSound, "Deselecting means a session runs silently")
 
-        let relaunched = HomeViewModel(settingsStore: store)
-        XCTAssertFalse(relaunched.soundEnabled)
-        XCTAssertNil(relaunched.sessionSound)
+        XCTAssertNil(state(sharing: store).selectedSound)
     }
 
-    func testTurningSoundBackOnRestoresTheChosenSound() {
+    func testChoosingASoundAfterSilenceWorks() {
         let store = freshStore()
         let fireplace = SoundOption.options.first { $0.id == "fireplace" }!
 
-        let viewModel = HomeViewModel(settingsStore: store)
-        viewModel.selectSound(fireplace)
-        viewModel.setSoundEnabled(false)
-        XCTAssertNil(viewModel.sessionSound)
+        let state = state(sharing: store)
+        state.selectSound(nil)
+        XCTAssertNil(state.selectedSound)
 
-        viewModel.setSoundEnabled(true)
-        XCTAssertEqual(viewModel.sessionSound, fireplace,
-                       "Disabling sound must not forget which sound was chosen")
+        state.selectSound(fireplace)
+        XCTAssertEqual(state.selectedSound, fireplace)
     }
 
     /// `purr` and `cafe` shipped in earlier builds. A stored selection of one
     /// of them must not leave the user with no sound at all.
     func testStoredSoundFromAnOlderBuildFallsBackToRain() {
-        let defaults = UserDefaults(suiteName: "SoundPreferenceTests-legacy-\(UUID().uuidString)")!
-        let store = SettingsStore(store: UserDefaultsStore(defaults: defaults))
+        let store = freshStore()
 
         var preferences = UserPreferences.defaults
         preferences.selectedSoundID = "purr"
         store.saveUserPreferences(preferences)
 
-        let viewModel = HomeViewModel(settingsStore: store)
-        XCTAssertEqual(viewModel.selectedSound, .rain)
-        XCTAssertNotNil(viewModel.sessionSound)
+        XCTAssertEqual(state(sharing: store).selectedSound, .rain)
     }
 }

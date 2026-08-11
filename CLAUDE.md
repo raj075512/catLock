@@ -16,29 +16,37 @@ Owner: Ashu (raj075512@gmail.com), operating from India, publishing worldwide.
 
 ## Current state — read this before believing any other doc
 
-**The app looks more finished than it is.** Six features are visible in the UI but have no implementation behind them. Do not assume a feature works because a view exists for it.
+**Screens 1–29 of the wireframe set are built and verified** (baseline onboarding, Home, the
+session and its end states, all sheets, Progress, Settings, About, Accessibility). Subscriptions
+and accounts are designed but not implemented.
 
 | Feature | Reality |
 |---|---|
-| Ambient sound | **Plays no audio.** `AudioPlayerService` flips a Bool. No `AVAudioPlayer`, `Resources/Audio/` is empty. |
-| Tasks | In-memory array with two placeholders. Nothing persists across launch. |
-| Progress / stats | Hardcoded fake session + `ProgressSummary.sample`. |
-| Room | `RoomViewModel` is two hardcoded strings; `RoomView` is unreachable from the UI. |
-| Premium / StoreKit | Product loading only. No purchase, restore, or entitlement. Called from nowhere. |
-| Notifications | `LocalNotificationService` is **never called.** Permission is requested in onboarding and never used. |
+| Ambient sound | **Works.** `AVAudioPlayer` against the six loops in `Resources/Audio/`. |
+| Tasks | **Persist.** SwiftData `TaskItem`; completed rows clear at local midnight. |
+| Progress / stats | **Real.** Computed from `CompletedSession` history. |
+| Room | Six rooms, selection persists and swaps Home's video. **Only Living room's clip is bundled** — the rest fall back to it until the art exists. |
+| Premium / StoreKit | Product loading only. No purchase, restore, or entitlement. Locked rows are inert. |
+| Notifications | `LocalNotificationService` is still **never called** — the completion-notification copy is undecided (handoff outstanding decision #5). |
+| Accounts | Not built. No backend. Settings' Sign in / Plan & Billing rows are disabled. |
 
-**Known bugs, all unfixed:**
+**Fixed, with tests:**
 
-1. **Timer drifts.** `FocusTimerService` decrements a counter in a `Task`; iOS suspends it when backgrounded, so a 25-min session can take an hour of wall clock. Needs to be end-date based.
-2. **Streak is not a streak.** `StreakStore` counts completed sessions with no day boundaries. Three sessions today displays "3 day streak".
-3. **`IPHONEOS_DEPLOYMENT_TARGET = 26.5`** — ships to only the newest iOS. Almost certainly wrong.
-4. **Bundle ID `ashutosh.goCat`** — not reverse-DNS. Must change before an App Store Connect record exists.
-5. **Onboarding says "GoCat"** to the user, not catLock.
-6. **`README.md` is stale** — advertises pause/resume (removed), working sounds, and premium IAP.
+1. ~~Timer drifts~~ — now derives from a wall-clock end date and survives backgrounding, force-quit and reboot.
+2. ~~Streak is not a streak~~ — `StreakState` counts days, increments once per local day.
+3. ~~`IPHONEOS_DEPLOYMENT_TARGET = 26.5`~~ — now 17.0.
+4. ~~Persistence half-state~~ — SwiftData only; the Core Data model is deleted.
+5. ~~Onboarding says "GoCat"~~ — all user-facing copy is now catLock, taken verbatim from the wireframes.
+6. ~~`README.md` is stale~~ — rewritten.
 
-Dead scaffolding, safe to delete when touched: `TimerPersistenceService` + `SessionStore` (written, never called), `CatAnimationController`, `RiveAnimationService`, `AnimationInput`, `AppRouter`, `TabItem`, `NavigationDestination`, `Item.swift`, `RoomView`.
+**Still open:**
 
-Persistence is in a half-state: a SwiftData container whose schema holds only the template `Item`, plus an unused Core Data model. **Pick SwiftData, delete the other.**
+- **Bundle ID `ashutosh.goCat`** — not reverse-DNS. Must change before an App Store Connect record exists. Left alone deliberately: the rename is unresolved, and a name-derived ID would need changing twice.
+- **Screen 44 is undrawn** — Reduce Motion / largest Dynamic Type / notifications-denied variants of Home. The four-chip duration row is the known Dynamic Type break point.
+- **Room, Catty and empty-state art** — every room but Living room, and the Tasks empty state, use placeholders.
+
+Dead scaffolding has been removed (`AppRouter`, `TabItem`, `NavigationDestination`, `Item.swift`,
+`SessionStore`, `TimerPersistenceService`, the animation services, `MockData`).
 
 Full analysis and roadmap: **`PLAN.md`**.
 
@@ -74,7 +82,7 @@ These are deliberate decisions, not oversights. If a change would break one, say
 
 ## Workflow
 
-- **Branch:** work happens on `feature/catlock-app-setup`. `main` and `dev` change only via PR.
+- **Branch:** work happens on a `feature/*` branch. `main` and `dev` change only via PR.
 - **CI:** `.github/workflows/pr-checks.yml` runs a merge-conflict check plus `xcodebuild test` on PRs into `dev`.
 - **Commits:** conventional prefixes (`feat:`, `fix:`, `docs:`, `chore:`) with a body explaining what and *why*. Look at recent history for the house style — bullet points, one thought per line.
 - **Pushing:** the Cowork/desktop sandbox **cannot reach github.com** (`403 from proxy`). It commits; `scripts/autopush.sh` on the user's Mac pushes. The terminal CLI can push directly.

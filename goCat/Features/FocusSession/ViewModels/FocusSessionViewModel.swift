@@ -1,43 +1,60 @@
 import Foundation
 import Observation
+import SwiftData
 
 @MainActor
 @Observable
 final class FocusSessionViewModel {
+    enum Outcome: Equatable {
+        case running
+        case cancelled
+        case completed
+    }
+
+    private(set) var outcome: Outcome = .running
+    private(set) var streakAfterCompletion = 0
+    private(set) var isFirstEverCompletion = false
+
+    let minutes: Int
+    let room: RoomOption
+
     var timerService: FocusTimerService
-    var session: FocusSession
 
-    /// Set once the timer reaches zero, so the completion screen can show the
-    /// new streak without re-reading the store.
-    private(set) var completedStreak: Int?
-
-    /// The ambient loop to run for the duration of the session, if any.
     private let sound: SoundOption?
     private let audio: AudioPlayerService
+    private let streakStore: StreakStore
+    private let activeSessionStore: ActiveSessionStore
+    /// Set by the view once SwiftData's context is available, so a completed
+    /// session is written to history.
+    var modelContext: ModelContext?
 
     init(
-        session: FocusSession = FocusSession(),
-        sound: SoundOption? = nil,
+        minutes: Int,
+        sound: SoundOption?,
+        room: RoomOption,
+        restoring: ActiveSession? = nil,
+        audio: AudioPlayerService = .shared,
         streakStore: StreakStore = .shared,
-        audio: AudioPlayerService = .shared
+        activeSessionStore: ActiveSessionStore = .shared
     ) {
-        self.session = session
-        self.sound = sound
+        self.minutes = restoring?.minutes ?? minutes
+        self.sound = restoring.map { $0.soundID.map(SoundOption.option(id:)) } ?? sound
+        self.room = room
         self.audio = audio
-        self.timerService = FocusTimerService(duration: session.plannedDuration)
+        self.streakStore = streakStore
+        self.activeSessionStore = activeSessionStore
+        self.timerService = FocusTimerService(duration: TimeInterval((restoring?.minutes ?? minutes) * 60))
+        self.restoredEndDate = restoring?.endDate
 
         timerService.onComplete = { [weak self] in
-            guard let self else { return }
-            self.session.state = .completed
-            self.session.endedAt = .now
-            self.completedStreak = streakStore.recordCompletedSession()
-            // The trophy should land in silence, not over rain.
-            self.audio.stop()
+            self?.handleCompletion()
         }
     }
 
+    private let restoredEndDate: Date?
+
     var formattedRemainingTime: String {
-        let total = Int(timerService.remainingSeconds)
+        let total = Int(timerService.remainingSeconds.rounded(.up))
         let hours = total / 3600
         let minutes = (total % 3600) / 60
         let seconds = total % 60
@@ -48,9 +65,19 @@ final class FocusSessionViewModel {
         return String(format: "%02d:%02d", minutes, seconds)
     }
 
+    var isInFinalMinute: Bool { timerService.isInFinalMinute }
+    var finalMinuteProgress: Double { timerService.finalMinuteProgress }
+
     func start() {
-        timerService.start()
-        session.state = .running
+        guard outcome == .running, timerService.state != .running else { return }
+
+        timerService.start(endingAt: restoredEndDate)
+
+        if let endDate = timerService.endDate {
+            activeSessionStore.begin(
+                ActiveSession(endDate: endDate, minutes: minutes, soundID: sound?.id)
+            )
+        }
 
         if let sound {
             audio.play(sound)
@@ -60,18 +87,41 @@ final class FocusSessionViewModel {
             // into a session the user chose to run without sound.
             audio.stop()
         }
+
+        // The end date may already have passed if the app was away long enough.
+        timerService.refresh()
     }
 
+    /// One tap, immediate, no confirmation dialog — including at 00:01, where
+    /// a cancel still discards.
     func cancel() {
         timerService.cancel()
-        session.state = .cancelled
-        session.endedAt = .now
+        audio.stop()
+        activeSessionStore.clear()
+        outcome = .cancelled
+    }
+
+    /// The clock kept running while the app was backgrounded.
+    func refresh() {
+        timerService.refresh()
+    }
+
+    func stopAudio() {
         audio.stop()
     }
 
-    /// Belt and braces: if the screen goes away for any reason we did not
-    /// anticipate, the ambient loop must not outlive it.
-    func stopAudio() {
+    private func handleCompletion() {
+        isFirstEverCompletion = !streakStore.hasEverCompleted
+        streakAfterCompletion = streakStore.recordCompletedSession()
+
+        modelContext?.insert(
+            CompletedSession(minutes: minutes, soundName: sound?.name)
+        )
+
+        activeSessionStore.clear()
+        // The trophy should land in silence, not over rain.
         audio.stop()
+        HapticManager.shared.success()
+        outcome = .completed
     }
 }

@@ -1,102 +1,178 @@
 import SwiftUI
 
-/// The active focus session. Deliberately continuous with the landing screen:
-/// the same full-bleed cat scene stays put and only the glass panel changes,
-/// so starting a session feels like settling in rather than navigating
-/// somewhere new.
+/// Screens 15–19. The session, and the two ways it can end.
 ///
-/// There is no back/close button and no pause — the only control is Cancel.
-/// A session either runs to completion (trophy, streak +1) or gets
-/// cancelled (trash, no streak change). That's the whole "lock yourself
-/// with your cat" premise: no quiet way to just wander off.
+/// One object on screen and one control on it. No status bar treatment, no nav
+/// bar, no back, no close, no pause, no task list, no sound control — anything
+/// a person could fidget with instead of working has been removed on purpose
+/// (rules 1 and 2). Swipe-to-dismiss is off for the same reason.
+///
+/// The strip is more transparent than Home's panel so the cat stays the
+/// brightest thing on screen, and the countdown is the only red in the app
+/// besides Cancel.
 struct FocusSessionView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.accessibilityReduceMotion) private var systemReduceMotion
 
     @State private var viewModel: FocusSessionViewModel
+    @State private var hasAppeared = false
 
-    init(session: FocusSession = FocusSession(), sound: SoundOption? = nil) {
-        _viewModel = State(initialValue: FocusSessionViewModel(session: session, sound: sound))
+    private var state: AppState { AppState.shared }
+
+    init(minutes: Int, sound: SoundOption?, room: RoomOption, restoring: ActiveSession? = nil) {
+        _viewModel = State(
+            initialValue: FocusSessionViewModel(
+                minutes: minutes,
+                sound: sound,
+                room: room,
+                restoring: restoring
+            )
+        )
     }
 
     var body: some View {
         ZStack {
             // Loops for the whole session — the motion is the company.
-            CatSceneBackground(playback: .looping)
+            CatSceneBackground(room: viewModel.room, playback: .looping)
 
             VStack(spacing: 0) {
+                if viewModel.outcome != .running {
+                    endStateTopBar
+                }
                 Spacer(minLength: 0)
-                controlPanel
+                panel
             }
-            .padding(.horizontal, AppSpacing.medium)
-            .padding(.bottom, AppSpacing.medium)
+            .padding(.horizontal, AppLayout.glassSideInset)
+            .padding(.bottom, AppLayout.glassBottomInset)
         }
         .preferredColorScheme(.light)
+        .interactiveDismissDisabled()
+        .statusBarHidden(viewModel.outcome == .running)
         .onAppear {
-            if viewModel.session.state == .running {
-                viewModel.start()
-            }
+            guard !hasAppeared else { return }
+            hasAppeared = true
+            viewModel.modelContext = modelContext
+            viewModel.start()
         }
-        .onDisappear {
-            // Nothing should keep playing once the session screen is gone.
-            viewModel.stopAudio()
+        .onChange(of: scenePhase) { _, phase in
+            // The clock ran while we were away; the session may already be over.
+            if phase == .active { viewModel.refresh() }
         }
+        .onDisappear { viewModel.stopAudio() }
     }
 
-    /// Thin, low-opacity strip pinned to the bottom for the active
-    /// countdown. Grows to fit an outcome screen (trophy/trash) once the
-    /// session ends — that's expected; only the countdown state is this
-    /// deliberately minimal.
-    private var controlPanel: some View {
-        GlassSurface(cornerRadius: 26, tint: .white.opacity(0.05), borderOpacity: 0.16) {
-            Group {
-                switch viewModel.session.state {
-                case .completed:
-                    SessionCompletedView(newStreak: viewModel.completedStreak ?? 0) {
-                        dismiss()
-                    }
-                    .padding(.horizontal, AppSpacing.large)
-                    .padding(.vertical, AppSpacing.medium)
-                case .cancelled:
-                    SessionCancelledView {
-                        dismiss()
-                    }
-                    .padding(.horizontal, AppSpacing.large)
-                    .padding(.vertical, AppSpacing.medium)
-                default:
-                    activePanel
-                        .padding(.horizontal, AppSpacing.medium)
-                        .padding(.vertical, AppSpacing.small)
+    /// The streak pill is deliberately visible on both end states — untouched
+    /// at 7 after a cancel, counted up to 8 after a completion.
+    private var endStateTopBar: some View {
+        HStack {
+            StreakPill(
+                streak: streakForPill,
+                hasEverCompleted: streakForPill > 0
+            ) {}
+            .allowsHitTesting(false)
+
+            Spacer(minLength: 0)
+        }
+        .padding(.top, AppSpacing.small)
+    }
+
+    private var streakForPill: Int {
+        viewModel.outcome == .completed
+            ? viewModel.streakAfterCompletion
+            : StreakStore.shared.currentStreak
+    }
+
+    @ViewBuilder
+    private var panel: some View {
+        switch viewModel.outcome {
+        case .running:
+            runningStrip
+                .transition(.identity)
+
+        case .cancelled:
+            GlassSurface(cornerRadius: AppCornerRadius.panel) {
+                SessionCancelledView { dismiss() }
+            }
+            .transition(.opacity)
+
+        case .completed:
+            GlassSurface(cornerRadius: AppCornerRadius.panel) {
+                SessionCompletedView(
+                    streak: viewModel.streakAfterCompletion,
+                    minutes: viewModel.minutes,
+                    isFirstEver: viewModel.isFirstEverCompletion
+                ) {
+                    dismiss()
                 }
             }
+            .transition(.opacity)
         }
     }
 
-    private var activePanel: some View {
-        HStack(spacing: AppSpacing.medium) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Focusing")
-                    .font(AppFonts.caption)
-                    .foregroundStyle(AppColors.textSecondary)
+    private var runningStrip: some View {
+        GlassSurface(cornerRadius: AppCornerRadius.strip, style: .sessionStrip) {
+            HStack(spacing: AppSpacing.medium) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Focusing")
+                        .font(AppFonts.caption)
+                        .foregroundStyle(AppColors.textSecondary)
 
-                Text(viewModel.formattedRemainingTime)
-                    .font(.system(size: 32, weight: .bold, design: .rounded))
-                    .monospacedDigit()
-                    .foregroundStyle(AppColors.danger)
-                    .contentTransition(.numericText(countsDown: true))
-                    .accessibilityLabel("Remaining time \(viewModel.formattedRemainingTime)")
+                    Text(viewModel.formattedRemainingTime)
+                        .font(AppFonts.countdown)
+                        .monospacedDigit()
+                        .tracking(-1)
+                        .foregroundStyle(AppColors.danger)
+                        .contentTransition(.numericText(countsDown: true))
+                }
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("Focusing. \(viewModel.formattedRemainingTime) remaining.")
+
+                Spacer(minLength: AppSpacing.medium)
+
+                Button("Cancel") {
+                    viewModel.cancel()
+                }
+                .font(AppFonts.headline)
+                .foregroundStyle(AppColors.danger)
+                .frame(minHeight: AppLayout.minimumTapTarget)
+                .accessibilityHint("Discards this session. Your streak is unchanged.")
             }
+            .padding(.horizontal, AppSpacing.large)
+            .padding(.vertical, AppSpacing.medium)
+        }
+        .overlay(alignment: .topLeading) { finalMinuteHairline }
+    }
 
-            Spacer(minLength: AppSpacing.medium)
+    /// The only change in the final minute: a 3pt sage hairline on the strip's
+    /// top edge, filling left to right as the minute runs out.
+    ///
+    /// Peripheral, silent, and static in place — nothing moves the type or the
+    /// cat, so someone mid-sentence isn't pulled out of the task, but a glance
+    /// registers "nearly done" without reading digits. Green because the
+    /// ending is a success, not an alarm.
+    @ViewBuilder
+    private var finalMinuteHairline: some View {
+        if viewModel.isInFinalMinute {
+            GeometryReader { proxy in
+                let reduceMotion = state.prefersReducedMotion(system: systemReduceMotion)
+                // Reduce Motion gets it at full width at 00:30 rather than
+                // sweeping, so it still communicates without animating.
+                let fraction = reduceMotion
+                    ? (viewModel.finalMinuteProgress >= 0.5 ? 1 : 0)
+                    : viewModel.finalMinuteProgress
 
-            Button("Cancel", role: .destructive) {
-                viewModel.cancel()
+                Rectangle()
+                    .fill(AppColors.accent)
+                    .frame(width: proxy.size.width * fraction, height: 3)
             }
-            .font(AppFonts.headline)
-            .foregroundStyle(AppColors.danger)
+            .frame(height: 3)
+            .accessibilityHidden(true)
         }
     }
 }
 
 #Preview {
-    FocusSessionView(session: FocusSession(plannedDuration: 25 * 60, state: .running))
+    FocusSessionView(minutes: 25, sound: .rain, room: .livingRoom)
 }
