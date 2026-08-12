@@ -1,12 +1,17 @@
 name: PR Checks
 
-# Runs on every pull request that targets `dev`.
-# Its main job is to guarantee the PR branch merges cleanly into `dev`
+# Runs on every pull request that targets `dev` or `main`.
+# Its main job is to guarantee the PR branch merges cleanly into its base
 # (no conflicts), plus a build/test pass on macOS.
+#
+# `main` is included deliberately. It used to be `dev` only, which meant a
+# branch merged straight into `main` was never built or tested — and that is
+# exactly how a red build reached `main` once already.
 on:
   pull_request:
     branches:
       - dev
+      - main
 
 # Cancel superseded runs for the same PR to save CI minutes.
 concurrency:
