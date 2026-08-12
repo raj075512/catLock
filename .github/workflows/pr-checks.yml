@@ -95,12 +95,11 @@ jobs:
           # Chosen at run time rather than hardcoded. A pinned device name is
           # the same drift trap as a pinned Xcode — it silently disappears when
           # the image updates.
-          DEVICE=$(xcrun simctl list devices available -j | python3 -c '
-import json, sys
-runtimes = json.load(sys.stdin)["devices"]
-names = [d["name"] for r in runtimes for d in runtimes[r] if d["name"].startswith("iPhone")]
-print(sorted(names)[0] if names else "")
-')
+          #
+          # Kept to a single line on purpose: an embedded multi-line script
+          # inside a YAML block scalar has to stay indented past the block, and
+          # getting that wrong kills the whole workflow before any job starts.
+          DEVICE=$(xcrun simctl list devices available | sed -nE 's/^[[:space:]]*(iPhone[^(]*[^ (])[[:space:]]+\(.*/\1/p' | head -1)
 
           if [ -z "$DEVICE" ]; then
             echo "::error::No iPhone simulator available on this runner."
