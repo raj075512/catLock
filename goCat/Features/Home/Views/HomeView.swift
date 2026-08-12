@@ -9,6 +9,8 @@ import SwiftUI
 struct HomeView: View {
     @State private var viewModel = HomeViewModel()
     private var state: AppState { AppState.shared }
+    private var access: PremiumAccessService { PremiumAccessService.shared }
+    private var store: StoreKitService { StoreKitService.shared }
 
     var body: some View {
         ZStack {
@@ -17,6 +19,7 @@ struct HomeView: View {
 
             VStack(spacing: 0) {
                 topBar
+                trialBanner
                 Spacer(minLength: 0)
                 controlPanel
             }
@@ -25,6 +28,12 @@ struct HomeView: View {
         }
         .preferredColorScheme(.light)
         .onAppear { viewModel.resumeSessionIfNeeded() }
+        .task {
+            // The entitlement is StoreKit's answer, not a cached flag, so it
+            // is re-read on every launch.
+            await access.refresh()
+            await store.loadProducts()
+        }
         .sheet(item: $viewModel.presentedSheet) { sheet in
             presentedSheet(sheet)
         }
@@ -74,6 +83,21 @@ struct HomeView: View {
             .accessibilityLabel("More options")
         }
         .padding(.top, AppSpacing.small)
+    }
+
+    /// Screen 31. A fourth glass object under the top bar, never during a
+    /// session, and never once it has done its two appearances.
+    @ViewBuilder
+    private var trialBanner: some View {
+        if viewModel.isShowingTrialBanner {
+            TrialEndingBanner(
+                message: viewModel.trialBannerMessage,
+                onManage: viewModel.trialWillRenew
+                    ? { viewModel.presentedSheet = .settings }
+                    : nil,
+                onDismiss: { viewModel.dismissTrialBanner() }
+            )
+        }
     }
 
     // MARK: - Bottom control panel

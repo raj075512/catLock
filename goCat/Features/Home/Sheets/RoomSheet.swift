@@ -10,6 +10,9 @@ struct RoomSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     private var state: AppState { AppState.shared }
+    private var access: PremiumAccessService { PremiumAccessService.shared }
+
+    @State private var isShowingPaywall = false
 
     private let columns = [
         GridItem(.flexible(), spacing: AppSpacing.medium),
@@ -19,7 +22,9 @@ struct RoomSheet: View {
     var body: some View {
         SheetScaffold(
             title: "Room",
-            subtitle: "Same cat, same chair. Different room.",
+            subtitle: didFallBack
+                ? "Same cat, same chair. Plus ended, so you're back in the Living room."
+                : "Same cat, same chair. Different room.",
             onDone: { dismiss() }
         ) {
             ScrollView {
@@ -32,14 +37,32 @@ struct RoomSheet: View {
                 .padding(.bottom, AppSpacing.xLarge)
             }
         }
+        .sheet(isPresented: $isShowingPaywall) {
+            PaywallView()
+        }
+        .onAppear(perform: fallBackFromALockedRoom)
+    }
+
+    /// When Plus lapses, a previously selected locked room silently falls back
+    /// to Living room — and this is the one place that says so, once, rather
+    /// than letting the scene change without explanation.
+    @State private var didFallBack = false
+
+    private func fallBackFromALockedRoom() {
+        guard !access.hasPlus, state.selectedRoom.isPremium else { return }
+        state.selectRoom(.livingRoom)
+        didFallBack = true
     }
 
     private func roomCell(_ room: RoomOption) -> some View {
         let isSelected = state.selectedRoom.id == room.id
 
+        let isLocked = room.isPremium && !access.hasPlus
+
         return Button {
-            guard !room.isPremium else {
+            guard !isLocked else {
                 HapticManager.shared.selection()
+                isShowingPaywall = true
                 return
             }
             state.selectRoom(room)
@@ -70,20 +93,20 @@ struct RoomSheet: View {
                         .foregroundStyle(AppColors.textPrimary)
                         .lineLimit(1)
 
-                    if room.isPremium {
+                    if isLocked {
                         Image(systemName: "lock.fill")
                             .font(.system(size: 11, weight: .semibold))
                             .foregroundStyle(AppColors.textSecondary)
                     }
                 }
             }
-            .opacity(room.isPremium ? 0.62 : 1)
+            .opacity(isLocked ? 0.62 : 1)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel(room.name)
         .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
-        .accessibilityHint(room.isPremium ? "Requires catLock Plus" : "")
+        .accessibilityHint(isLocked ? "Requires catLock Plus" : "")
     }
 }
 

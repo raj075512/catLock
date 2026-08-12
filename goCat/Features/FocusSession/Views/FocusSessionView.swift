@@ -61,6 +61,12 @@ struct FocusSessionView: View {
             if phase == .active { viewModel.refresh() }
         }
         .onDisappear { viewModel.stopAudio() }
+        // On top of the completion screen, never instead of it, and never
+        // while a session is running — `isShowingPaywall` is only ever set
+        // from the completion path.
+        .sheet(isPresented: $viewModel.isShowingPaywall) {
+            PaywallView()
+        }
     }
 
     /// The streak pill is deliberately visible on both end states — untouched

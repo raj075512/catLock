@@ -252,6 +252,91 @@ already declared with, and no feature here needs anything Core Data does better.
 
 ---
 
+## 2026-08-12 — Two subscription tiers, not three
+
+**Decision:** ship `catlock.plus.yearly` (7-day free trial, preselected) and
+`catlock.plus.monthly` (no trial). No weekly tier.
+
+**Why:** `MONETIZATION.md` described three tiers including a weekly one, but the
+paywall was drawn for two cards and its legal disclosure, its 32pt price and its
+swapping button label were all written against that. That document also warns that
+the weekly price it proposed "puts catLock in the pricing band Apple scrutinises
+hardest" and that "Apple has been actively removing apps" pairing an aggressive
+weekly price with thin functionality. Two tiers is the smaller surface for a first
+paid build.
+
+**Revisit** once there is real retention data. Adding a third product later is a
+one-line change to `PlusProduct` plus a card on the paywall.
+
+---
+
+## 2026-08-12 — The paywall appears on top of the completion screen
+
+**Decision:** after the second *completed* session, present the paywall over the
+trophy — not instead of it, and never after a cancelled one.
+
+**Why:** two of our own documents disagreed. `MONETIZATION.md` §4 carried a hard rule
+that the completion screen must never show a paywall; wireframes 30 and 18 both
+specified exactly that placement. The wireframe won: it is the more specific
+artefact, it is what screens 1–29 were built against, and the completion moment is
+the highest-intent one the app has. The rule in `MONETIZATION.md` has been rewritten
+rather than left to contradict the code.
+
+**What did *not* change:** it still never interrupts a running session, never follows
+a cancellation, and fires exactly once automatically. `PaywallTrigger` enforces all
+four rules and `PaywallTriggerTests` pins them.
+
+---
+
+## 2026-08-12 — The paywall sells only what exists
+
+**Decision:** the perk list is the six sounds and the six rooms. The wireframe's
+"Advanced stats and history" and "Home Screen widget" lines are omitted.
+
+**Why:** neither is built. Guideline 3.1.2 treats charging for absent features as
+grounds for rejection, and `MONETIZATION.md` itself warns that a high price "invites
+the reviewer to ask what recurring value justifies it" — a promise of a widget that
+does not exist is the worst possible answer. Both perks were already visibly locked
+in the Sounds and Room sheets, so the paywall sells something the user has already
+bumped into rather than introducing new claims.
+
+**Restore the lines** when the widget and the expanded stats ship, not before.
+`PaywallUITests` asserts they stay out until then.
+
+---
+
+## 2026-08-12 — The entitlement is derived from StoreKit, never cached
+
+**Decision:** `PremiumAccessService` reads `Transaction.currentEntitlements` on every
+refresh and persists nothing except a "has ever subscribed" marker.
+
+**Why:** a cached entitlement is a cached wrong answer the moment a subscription
+lapses or is refunded. The free tier is a complete app, so there is no offline state
+worth protecting with a stale flag. The one persisted bit exists only so Plan &
+Billing can tell "never subscribed" from "lapsed" — the lapsed copy leads by
+reassuring that history is intact, which would read as nonsense to someone who never
+paid.
+
+---
+
+## 2026-08-12 — The StoreKit config lives in the test target, not the app
+
+**Decision:** `catLock.storekit` sits in `goCatTests/`, referenced by the scheme.
+
+**Why:** it was briefly in `goCat/Resources/`, where the synchronized group copied it
+straight into the shipping app bundle — a development fixture with placeholder prices
+has no business in a release build.
+
+**Also worth knowing:** StoreKit's test configuration does not reach the app process
+when tests are driven from `xcodebuild`, and `SKTestSession` configures the runner
+rather than the app under test. A first version of the paywall UI tests passed
+against a paywall rendering **no prices at all**, because every assertion happened to
+match copy that also exists in the no-products fallback. Purchase, pricing and
+entitlement are covered in-process by `StoreKitServiceTests`; the UI tests cover the
+legal furniture and the unavailable state.
+
+---
+
 ## Open decisions — not yet made
 
 These need an answer before launch. Listed so they don't get forgotten.
@@ -260,6 +345,5 @@ These need an answer before launch. Listed so they don't get forgotten.
 |---|---|---|
 | **Does the app get renamed?** A live "Cat Lock" exists in the same App Store category. | Icon, domain, marketing, App Store record | `legal/IP_CLEARANCE.md` |
 | Individual vs registered entity as App Store publisher? Individual publishes under your personal legal name, visible worldwide. | App Store Connect record | `legal/TERMS_OF_USE.md` §1 |
-| Is the custom duration picker free or Plus? | Paywall design | `MONETIZATION.md` |
 | Is iPad supported? `TARGETED_DEVICE_FAMILY` allows it; nothing was designed for it. | Layout, screenshots | `TESTING.md` |
 | Ship free first and add Plus in v1.1, or launch paid? | Whole roadmap | `PLAN.md` §5 |

@@ -11,6 +11,9 @@ struct SoundsSheet: View {
 
     private var state: AppState { AppState.shared }
     private var audio: AudioPlayerService { AudioPlayerService.shared }
+    private var access: PremiumAccessService { PremiumAccessService.shared }
+
+    @State private var isShowingPaywall = false
 
     private var freeSounds: [SoundOption] { SoundOption.options.filter { !$0.isPremium } }
     private var lockedSounds: [SoundOption] { SoundOption.options.filter(\.isPremium) }
@@ -31,8 +34,12 @@ struct SoundsSheet: View {
                         soundRow(sound)
                     }
 
-                    plusFooter
-                        .padding(.top, AppSpacing.small)
+                    // Locks and the upsell both disappear entirely once Plus
+                    // is active. No upsell after purchase.
+                    if !access.hasPlus {
+                        plusFooter
+                            .padding(.top, AppSpacing.small)
+                    }
                 }
                 .padding(.horizontal, AppSpacing.medium)
                 .padding(.bottom, AppSpacing.xLarge)
@@ -42,6 +49,9 @@ struct SoundsSheet: View {
             // The preview is for choosing, not for listening to on Home. The
             // session starts its own playback from scratch.
             audio.stop()
+        }
+        .sheet(isPresented: $isShowingPaywall) {
+            PaywallView()
         }
     }
 
@@ -53,7 +63,7 @@ struct SoundsSheet: View {
             subtitle: isSelected ? "Playing" : nil,
             systemImage: "speaker.wave.2.fill",
             isSelected: isSelected,
-            isLocked: sound.isPremium,
+            isLocked: sound.isPremium && !access.hasPlus,
             trailing: {
                 if isSelected {
                     HStack(spacing: AppSpacing.small) {
@@ -69,10 +79,11 @@ struct SoundsSheet: View {
     }
 
     private func select(_ sound: SoundOption, isSelected: Bool) {
-        guard !sound.isPremium else {
-            // Locked rows open the paywall (screen 30) once subscriptions
-            // ship in v1.1. Until then they simply don't select.
+        guard !sound.isPremium || access.hasPlus else {
+            // A locked row is clear intent, so it opens the paywall rather
+            // than doing nothing.
             HapticManager.shared.selection()
+            isShowingPaywall = true
             return
         }
 
@@ -89,7 +100,10 @@ struct SoundsSheet: View {
     }
 
     private var plusFooter: some View {
-        HStack {
+        Button {
+            isShowingPaywall = true
+        } label: {
+            HStack {
             Text("Three more sounds with Plus")
                 .font(AppFonts.caption)
                 .foregroundStyle(AppColors.textSecondary)
@@ -99,10 +113,12 @@ struct SoundsSheet: View {
             Text("See Plus")
                 .font(AppFonts.caption)
                 .foregroundStyle(AppColors.primary)
+            }
+            .padding(AppSpacing.medium)
+            .background(AppColors.elevatedSurface)
+            .clipShape(RoundedRectangle(cornerRadius: AppCornerRadius.large, style: .continuous))
         }
-        .padding(AppSpacing.medium)
-        .background(AppColors.elevatedSurface)
-        .clipShape(RoundedRectangle(cornerRadius: AppCornerRadius.large, style: .continuous))
+        .buttonStyle(.plain)
     }
 }
 

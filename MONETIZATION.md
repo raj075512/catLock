@@ -1,7 +1,10 @@
 # catLock — Monetization Plan
 
 **Last updated:** 10 August 2026
-**Status:** planning only. Nothing in this document is implemented. `Services/Purchases/` currently contains a 13-line product-loading stub and a Bool.
+**Status:** implemented on `feature/adding-money`. StoreKit 2 purchase, restore and
+entitlement are live; the paywall, trial banner and Plan & Billing screens are built.
+Prices below are the *plan*; the shipping tier structure is two products, not three —
+see §2.
 **Prerequisite:** do not start any of this until `PLAN.md` Tier 0 and Tier 1 are done. Charging for an app whose ambient sound is silent is the fastest route to refunds and one-star reviews.
 
 ---
@@ -29,7 +32,14 @@ The blueprint already reached this conclusion and it holds up. Focus apps have a
 
 ## 2. Pricing
 
-**Trial-led, three tiers, annual preselected.**
+**Trial-led, two tiers, annual preselected.**
+
+> **Built:** two products — `catlock.plus.yearly` (7-day free trial) and
+> `catlock.plus.monthly` (no trial), yearly preselected. The weekly tier below was
+> planned but not shipped: the paywall was drawn for two cards, and its legal
+> disclosure, its 32pt price and its swapping button label were all written against
+> that. This document's own warning in "Read this before you commit to weekly
+> pricing" is the other reason. Revisit once there is retention data.
 
 | Product | Price | Per week | Trial |
 |---|---|---|---|
@@ -133,8 +143,18 @@ The blueprint's analysis here is good and I'd follow it almost exactly.
 
 **Hard rules:**
 - Never interrupt a running session with a paywall. Not once.
-- Never show a paywall on the completion screen. That moment belongs to the trophy and the streak.
-- One paywall per session maximum. If they dismiss it, that's an answer.
+- The paywall appears **on top of** the completion screen, never instead of it — the
+  trophy and the streak land first, and the sheet arrives over them.
+- Never after a *cancelled* session. Asking for money straight after someone gave up
+  is the worst possible read of the room.
+- Once, automatically. If they dismiss it, that's an answer; afterwards it is
+  reachable only from Plan & Billing or by tapping a lock.
+
+> This section previously read "never show a paywall on the completion screen",
+> which directly contradicted wireframe 30 ("triggered on top of 18") and wireframe
+> 18 ("the paywall is presented on top of this screen, not instead of it"). The
+> wireframe won — it is the more specific artefact and the one screens 1–29 were
+> built against. Enforced by `PaywallTrigger` and pinned by `PaywallTriggerTests`.
 
 ---
 
@@ -186,6 +206,9 @@ Non-negotiables, all of which are App Review rejection reasons:
 ## 7. Compliance checklist before the first paid build
 
 - [ ] Enrol in the App Store Small Business Program (15% vs 30%)
+- [x] StoreKit 2 purchase, restore and entitlement implemented (`Services/Purchases/`)
+- [x] Paywall carries close, full auto-renewal disclosure, Restore, Terms and Privacy above the fold
+- [x] Paywall sells only what exists — the widget and advanced-stats lines are omitted until built
 - [ ] Create subscription group + monthly/yearly products in App Store Connect
 - [ ] Privacy Policy and Terms of Service, publicly hosted, linked in-app and on the listing
 - [ ] Support URL (required for the listing)

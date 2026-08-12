@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import StoreKit
 
 /// Owns what Home is *presenting*. The user's actual choices — duration,
 /// sound, room — live in `AppState`, because the session screen and the sheets
@@ -36,6 +37,40 @@ final class HomeViewModel {
         self.state = state
         self.streakStore = streakStore
         self.activeSessionStore = activeSessionStore
+    }
+
+    // MARK: - Trial banner
+
+    private let trialBannerPolicy = TrialBannerPolicy()
+    /// Bumped on dismissal so the view re-evaluates the policy.
+    private var trialBannerDismissals = 0
+
+    private var access: PremiumAccessService { .shared }
+
+    var isShowingTrialBanner: Bool {
+        _ = trialBannerDismissals
+        return trialBannerPolicy.shouldShow(
+            renewalDate: access.renewalDate,
+            isInTrial: access.isInTrial
+        )
+    }
+
+    var trialWillRenew: Bool {
+        if case .trial = access.state { return true }
+        return false
+    }
+
+    var trialBannerMessage: String {
+        trialBannerPolicy.message(
+            renewalDate: access.renewalDate,
+            price: access.plan.flatMap { StoreKitService.shared.product(for: $0)?.displayPrice },
+            willRenew: trialWillRenew
+        )
+    }
+
+    func dismissTrialBanner() {
+        trialBannerPolicy.dismissForToday()
+        trialBannerDismissals += 1
     }
 
     var currentStreak: Int { streakStore.currentStreak }
