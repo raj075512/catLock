@@ -132,12 +132,23 @@ final class FocusSessionUITests: XCTestCase {
         app.buttons["addFirstTaskButton"].tap()
         let field = app.textFields["What are you working on?"]
         XCTAssertTrue(field.waitForExistence(timeout: 5))
+        // Tap before typing. The field focuses itself on appear, but on a
+        // slower machine `typeText` can land before focus does and throw.
+        field.tap()
         field.typeText("Draft the intro paragraph")
         capture(app, "24-add-task")
         app.buttons["Add"].tap()
 
-        XCTAssertTrue(app.staticTexts["Draft the intro paragraph"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Completed tasks clear themselves at midnight."].exists)
+        // Queried without naming an element type on purpose: the row combines
+        // its children and carries a button trait, and iOS versions disagree
+        // about whether that surfaces as a button or a static text. Asserting
+        // the type made this pass on iOS 26 and fail on iOS 18.
+        let row = app.descendants(matching: .any)["Draft the intro paragraph"].firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 10))
+        XCTAssertTrue(
+            app.staticTexts["Completed tasks clear themselves at midnight."]
+                .waitForExistence(timeout: 5)
+        )
         capture(app, "22-tasks-populated")
     }
 

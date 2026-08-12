@@ -15,6 +15,10 @@ final class FocusSessionViewModel {
     private(set) var streakAfterCompletion = 0
     private(set) var isFirstEverCompletion = false
 
+    /// Set when the completion screen should present the paywall on top of
+    /// itself. Never set on cancel, and never while the session is running.
+    var isShowingPaywall = false
+
     let minutes: Int
     let room: RoomOption
 
@@ -24,6 +28,7 @@ final class FocusSessionViewModel {
     private let audio: AudioPlayerService
     private let streakStore: StreakStore
     private let activeSessionStore: ActiveSessionStore
+    private let paywallTrigger: PaywallTrigger
     /// Set by the view once SwiftData's context is available, so a completed
     /// session is written to history.
     var modelContext: ModelContext?
@@ -35,7 +40,8 @@ final class FocusSessionViewModel {
         restoring: ActiveSession? = nil,
         audio: AudioPlayerService = .shared,
         streakStore: StreakStore = .shared,
-        activeSessionStore: ActiveSessionStore = .shared
+        activeSessionStore: ActiveSessionStore = .shared,
+        paywallTrigger: PaywallTrigger = PaywallTrigger()
     ) {
         self.minutes = restoring?.minutes ?? minutes
         self.sound = restoring.map { $0.soundID.map(SoundOption.option(id:)) } ?? sound
@@ -43,6 +49,7 @@ final class FocusSessionViewModel {
         self.audio = audio
         self.streakStore = streakStore
         self.activeSessionStore = activeSessionStore
+        self.paywallTrigger = paywallTrigger
         self.timerService = FocusTimerService(duration: TimeInterval((restoring?.minutes ?? minutes) * 60))
         self.restoredEndDate = restoring?.endDate
 
@@ -123,5 +130,12 @@ final class FocusSessionViewModel {
         audio.stop()
         HapticManager.shared.success()
         outcome = .completed
+
+        // On top of the trophy, not instead of it — the streak still lands
+        // first. Cancelling never reaches here, so a discarded session is
+        // never followed by a request for money.
+        isShowingPaywall = paywallTrigger.recordCompletionAndAskToPresent(
+            hasPlus: PremiumAccessService.shared.hasPlus
+        )
     }
 }

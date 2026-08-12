@@ -26,7 +26,7 @@ and accounts are designed but not implemented.
 | Tasks | **Persist.** SwiftData `TaskItem`; completed rows clear at local midnight. |
 | Progress / stats | **Real.** Computed from `CompletedSession` history. |
 | Room | Six rooms, selection persists and swaps Home's video. **Only Living room's clip is bundled** — the rest fall back to it until the art exists. |
-| Premium / StoreKit | Product loading only. No purchase, restore, or entitlement. Locked rows are inert. |
+| Premium / StoreKit | **Works.** StoreKit 2 purchase, restore and entitlement; paywall, trial banner and Plan & Billing built. Two tiers — yearly with a 7-day trial, monthly without. Products don't exist in App Store Connect yet; a bundled `.storekit` config covers local testing. |
 | Notifications | `LocalNotificationService` is still **never called** — the completion-notification copy is undecided (handoff outstanding decision #5). |
 | Accounts | Not built. No backend. Settings' Sign in / Plan & Billing rows are disabled. |
 
@@ -47,6 +47,12 @@ and accounts are designed but not implemented.
 
 Dead scaffolding has been removed (`AppRouter`, `TabItem`, `NavigationDestination`, `Item.swift`,
 `SessionStore`, `TimerPersistenceService`, the animation services, `MockData`).
+
+**Money rules — enforced by `PaywallTrigger`, pinned by `PaywallTriggerTests`:** the
+paywall appears once, on top of the completion screen, after the second *completed*
+session. Never during a session, never after a cancellation, never twice
+automatically. It sells only what exists — the widget and advanced-stats lines from
+the wireframe stay out until those are built.
 
 Full analysis and roadmap: **`PLAN.md`**.
 

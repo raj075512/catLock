@@ -171,9 +171,14 @@ struct TaskRow: View {
         .padding(.vertical, AppSpacing.medium)
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("taskRow")
         .accessibilityLabel(task.title)
         .accessibilityValue(task.isCompleted ? "Completed" : "Not completed")
         .accessibilityAddTraits(.isButton)
+        // `.combine` absorbs the circle's own Button, so without this the row
+        // advertises a button trait and then does nothing when VoiceOver
+        // activates it — a task that can be read but never ticked off.
+        .accessibilityAction(.default, onToggle)
     }
 }
 
