@@ -70,4 +70,17 @@ jobs:
             -project goCat.xcodeproj \
             -scheme goCat \
             -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
+            -resultBundlePath TestResults.xcresult \
             CODE_SIGNING_ALLOWED=NO
+
+      # xcodebuild's console output names the failing test but not the
+      # assertion, which made the last red build undiagnosable from the log
+      # alone. The result bundle carries the failure message, the line number
+      # and the UI-test screenshots.
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: TestResults.xcresult
+          retention-days: 14

@@ -6,4 +6,5 @@ enum AppLogger {
     static let timer = Logger(subsystem: "goCat", category: "Timer")
     static let purchases = Logger(subsystem: "goCat", category: "Purchases")
     static let security = Logger(subsystem: "goCat", category: "Security")
+    static let persistence = Logger(subsystem: "goCat", category: "Persistence")
 }

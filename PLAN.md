@@ -1,7 +1,10 @@
 # catLock — Project Plan & State of the App
 
-**Last updated:** 10 August 2026
-**Branch audited:** `feature/catlock-app-setup` @ `1b435a8`
+**Last updated:** 12 August 2026
+**Branch audited:** `feature/adding-money` @ HEAD
+
+> **Sections 0–2 below are the 10 August audit and are now historical.** Tiers 0, 1 and
+> 2 are complete, and Tier 4 (money) landed early. What is actually left is in §3.
 **Source of truth for scope:** this file + `DESIGN.md`. The original `GoCat_ADHD_Focus_App_Development_Plan.xlsm` is now a *reference blueprint*, not a commitment — see "Reconciling the Excel plan" below.
 
 ---
@@ -116,29 +119,39 @@ Untouched, appropriately — these are Phase 4+ concerns. The blueprint's paywal
 
 Ordered by "what stops you shipping," not by what's fun.
 
-### Tier 0 — Correctness. Nothing else matters until these are done.
-1. Fix the timer to be end-date based (bug #3).
-2. Fix or relabel the streak (bug #1). Either implement day boundaries, or rename it "sessions" until you do.
-3. Pick **one** persistence stack (SwiftData is the right call for a new iOS app) and actually save sessions and tasks. Delete the other. Delete `Item.swift`.
-4. Drop the deployment target (bug #2) and fix the bundle ID (bug #4).
+### Tier 0 — Correctness. ✅ Done
+1. ~~Fix the timer to be end-date based.~~ Derives from a wall-clock end date and survives backgrounding, force-quit and reboot.
+2. ~~Fix or relabel the streak.~~ `StreakState` counts days, increments once per local day, migrates old counters.
+3. ~~Pick one persistence stack.~~ SwiftData; the Core Data model, its mappings and `Item.swift` are deleted.
+4. ~~Drop the deployment target.~~ 26.5 → 17.0. **Bundle ID still `ashutosh.goCat`** — blocked on the rename, see below.
 
-### Tier 1 — Make the visible features real.
-5. Ambient sound: license 4–6 loops, add real `AVAudioPlayer` playback, configure the audio session for background/mixing, wire `AmbientSoundPlayer` into the Sounds sheet.
-6. Progress: compute real stats from persisted sessions. Delete the fake sample data.
-7. Tasks: persist them; add start-session-from-task (it's the feature that links your two halves together).
-8. Wire `LocalNotificationService` to fire on session completion — you already have the permission.
+### Tier 1 — Make the visible features real. ✅ Mostly done
+5. ~~Ambient sound.~~ Real `AVAudioPlayer` against six bundled loops.
+6. ~~Progress: compute real stats.~~ Derived from persisted `CompletedSession` records.
+7. ~~Tasks: persist them.~~ SwiftData; completed rows clear at local midnight. **Start-session-from-task was not built** — the wireframes deliberately exclude it (tasks are a before-and-after surface, rule 2). Two of our own documents disagree here; pick one.
+8. **Wire `LocalNotificationService`** — still the one genuinely outstanding Tier 1 item. Blocked on the completion-notification copy, which is undefined.
 
-### Tier 2 — Make it survivable.
-9. Restore-on-relaunch for an interrupted session (`TimerPersistenceService` is already written — just call it).
-10. Delete dead scaffolding: Rive, `CatAnimationController`, `AppRouter`/`TabItem`, unreachable `RoomView`.
-11. Rewrite `README.md` to describe what exists.
-12. Real tests around timer math, streak boundaries, and persistence — see `TESTING.md`.
+### Tier 2 — Make it survivable. ✅ Done
+9. ~~Restore-on-relaunch.~~ `ActiveSessionStore`; a running session survives force-quit.
+10. ~~Delete dead scaffolding.~~ Rive, `CatAnimationController`, `AppRouter`/`TabItem`, `RoomView`, `MockData`, `ContentView` all gone.
+11. ~~Rewrite `README.md`.~~ Done.
+12. ~~Real tests.~~ ~70 tests covering timer math, streak boundaries, persistence, onboarding, and the paywall rules — plus UI tests that walk the flows and assert the product rules.
 
-### Tier 3 — Ship it.
-13. Crash reporting, app icon, launch screen, App Store assets, privacy policy + support page, TestFlight.
+### Tier 3 — Ship it. ⬅️ **This is where the work is now**
+13. Crash reporting, launch screen, App Store assets, hosted privacy policy + support page, TestFlight.
 
-### Tier 4 — Money.
-14. StoreKit 2 subscription, paywall, entitlement gating. See `MONETIZATION.md`.
+**Everything here is gated on one decision: does the app get renamed?** The bundle ID,
+the icon, the domain, the privacy and support URLs and the App Store Connect record
+all derive from it, and the bundle ID is permanent once that record exists. See
+`legal/IP_CLEARANCE.md`.
+
+**Not blocked, and worth doing now:**
+- **Real-device QA of the timer.** It was rewritten and verified only in a simulator. `TESTING.md` §4 lists the cases that matter: lock the phone for five real minutes, switch apps for ten, force-quit mid-session, and change the system timezone across a day boundary.
+- **Lottie provenance.** Neither `.lottie` file has an established licence (`legal/IP_CLEARANCE.md`), and "I found it online" is not a defence.
+- **An app icon exists** (`icons-catlook.icon`) but is named for a spelling the product doesn't use.
+
+### Tier 4 — Money. ✅ Done, ahead of schedule
+14. ~~StoreKit 2 subscription, paywall, entitlement gating.~~ Two tiers, purchase/restore/entitlement, paywall, trial banner and Plan & Billing. **Products still need creating in App Store Connect** — the app is tested against a bundled `.storekit` config.
 
 ---
 

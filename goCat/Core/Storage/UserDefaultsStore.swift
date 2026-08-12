@@ -19,6 +19,14 @@ final class UserDefaultsStore {
         return value
     }
 
+    /// Distinguishes "never written" from "written, and happens to equal the
+    /// default" — which a fallback-based read cannot do, and which migrations
+    /// need in order to know whether they have already run.
+    func storedValue<T: Decodable>(forKey key: String) -> T? {
+        guard let data = defaults.data(forKey: key) else { return nil }
+        return try? decoder.decode(T.self, from: data)
+    }
+
     func set<T: Encodable>(_ value: T, forKey key: String) {
         guard let data = try? encoder.encode(value) else {
             return
