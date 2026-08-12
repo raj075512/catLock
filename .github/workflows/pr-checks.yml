@@ -1,12 +1,17 @@
 name: PR Checks
 
-# Runs on every pull request that targets `dev`.
-# Its main job is to guarantee the PR branch merges cleanly into `dev`
+# Runs on every pull request that targets `dev` or `main`.
+# Its main job is to guarantee the PR branch merges cleanly into its base
 # (no conflicts), plus a build/test pass on macOS.
+#
+# `main` is included deliberately. It used to be `dev` only, which meant a
+# branch merged straight into `main` was never built or tested — and that is
+# exactly how a red build reached `main` once already.
 on:
   pull_request:
     branches:
       - dev
+      - main
 
 # Cancel superseded runs for the same PR to save CI minutes.
 concurrency:
@@ -50,7 +55,13 @@ jobs:
 
   build-test:
     name: Build & Test (iOS)
-    runs-on: macos-15
+    # macOS 26, because the app icon is an Icon Composer bundle that only
+    # Xcode 26 can compile. The runner previously sat on macos-15 / Xcode 16.4
+    # while development happened on 26.x, and that gap caused two separate red
+    # builds in a day: an asset-catalog error, and a UI test that passed on
+    # iOS 26 but failed on 18 because the two classify an accessibility element
+    # differently. CI has to compile what the developer compiles.
+    runs-on: macos-26
     # Don't bother building if the branch can't even merge cleanly.
     needs: conflict-check
     steps:
@@ -58,10 +69,46 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Select Xcode
-        run: sudo xcode-select -switch /Applications/Xcode.app
+        run: |
+          set -euo pipefail
 
-      - name: Show Xcode version
-        run: xcodebuild -version
+          echo "Xcode versions on this runner:"
+          ls -d /Applications/Xcode*.app
+
+          # Newest installed, rather than whatever /Applications/Xcode.app
+          # happens to point at.
+          LATEST=$(ls -d /Applications/Xcode*.app | sort -V | tail -1)
+          sudo xcode-select -switch "$LATEST/Contents/Developer"
+          xcodebuild -version
+
+          MAJOR=$(xcodebuild -version | head -1 | sed -E 's/^Xcode ([0-9]+).*/\1/')
+          if [ "$MAJOR" -lt 26 ]; then
+            echo "::error::Xcode $MAJOR selected, but the Icon Composer app icon needs Xcode 26+. Move this job to a newer runner image."
+            exit 1
+          fi
+
+      - name: Pick a simulator
+        id: sim
+        run: |
+          set -euo pipefail
+
+          # Chosen at run time rather than hardcoded. A pinned device name is
+          # the same drift trap as a pinned Xcode — it silently disappears when
+          # the image updates.
+          #
+          # Kept to a single line on purpose: an embedded multi-line script
+          # inside a YAML block scalar has to stay indented past the block, and
+          # getting that wrong kills the whole workflow before any job starts.
+          DEVICE=$(xcrun simctl list devices available | sed -nE 's/^[[:space:]]*(iPhone[^(]*[^ (])[[:space:]]+\(.*/\1/p' | head -1)
+
+          if [ -z "$DEVICE" ]; then
+            echo "::error::No iPhone simulator available on this runner."
+            xcrun simctl list devices available
+            exit 1
+          fi
+
+          echo "Testing on: $DEVICE"
+          echo "device=$DEVICE" >> "$GITHUB_OUTPUT"
 
       - name: Build & run tests
         run: |
@@ -69,7 +116,7 @@ jobs:
           xcodebuild test \
             -project goCat.xcodeproj \
             -scheme goCat \
-            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
+            -destination "platform=iOS Simulator,name=${{ steps.sim.outputs.device }},OS=latest" \
             -resultBundlePath TestResults.xcresult \
             CODE_SIGNING_ALLOWED=NO
 

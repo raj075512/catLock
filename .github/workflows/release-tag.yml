@@ -1,0 +1,149 @@
+name: Tag release
+
+# Fires when `dev` lands on `main` — which, per the branching rule, is the only
+# thing that ever reaches `main`. Every such merge is a release, so every such
+# merge gets a tag.
+#
+# The version is read from the Xcode project's MARKETING_VERSION rather than
+# being auto-incremented from commit messages. That keeps exactly one source of
+# truth: the number in the tag is the number that ships to the App Store. A tag
+# invented by CI would eventually disagree with the binary, and then neither can
+# be trusted.
+#
+# To cut a release: bump MARKETING_VERSION on `dev`, rename the CHANGELOG's
+# `[Unreleased]` heading to `[x.y.z]`, then merge `dev` into `main`.
+on:
+  push:
+    branches:
+      - main
+
+# Needed to push the tag and create the release.
+permissions:
+  contents: write
+
+concurrency:
+  group: release-tag
+  cancel-in-progress: false
+
+jobs:
+  tag:
+    name: Tag and release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Full history so the fallback release notes can list commits since
+          # the previous tag.
+          fetch-depth: 0
+
+      - name: Read the version from the Xcode project
+        id: version
+        run: |
+          set -euo pipefail
+
+          RAW=$(grep -m1 -E '^[[:space:]]*MARKETING_VERSION = ' goCat.xcodeproj/project.pbxproj \
+                | sed -E 's/.*MARKETING_VERSION = ([^;]+);.*/\1/' \
+                | tr -d '[:space:]')
+
+          if [ -z "$RAW" ]; then
+            echo "::error::Could not read MARKETING_VERSION from goCat.xcodeproj/project.pbxproj"
+            exit 1
+          fi
+
+          # CFBundleShortVersionString allows one to three components, but
+          # semver wants three. Pad so "1.0" tags as v1.0.0 rather than
+          # producing tags that sort unpredictably.
+          case "$(echo "$RAW" | tr -cd '.' | wc -c | tr -d ' ')" in
+            0) VERSION="$RAW.0.0" ;;
+            1) VERSION="$RAW.0" ;;
+            *) VERSION="$RAW" ;;
+          esac
+
+          if ! echo "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::MARKETING_VERSION '$RAW' is not a usable semantic version"
+            exit 1
+          fi
+
+          echo "raw=$RAW"          >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION"  >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION"     >> "$GITHUB_OUTPUT"
+          echo "Project version $RAW → tag v$VERSION"
+
+      - name: Skip if this version is already tagged
+        id: check
+        run: |
+          set -euo pipefail
+          TAG="${{ steps.version.outputs.tag }}"
+
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            {
+              echo "### No tag created"
+              echo ""
+              echo "\`$TAG\` already exists, so MARKETING_VERSION was not bumped for this merge."
+              echo ""
+              echo "If this merge was meant to be a release, bump \`MARKETING_VERSION\` on \`dev\`,"
+              echo "rename the CHANGELOG's \`[Unreleased]\` heading, and merge again."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "::warning::$TAG already exists — nothing tagged. Was MARKETING_VERSION meant to be bumped?"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build the release notes
+        if: steps.check.outputs.exists == 'false'
+        id: notes
+        run: |
+          set -euo pipefail
+          VERSION="${{ steps.version.outputs.version }}"
+
+          # Prefer the CHANGELOG section for this version; fall back to the
+          # commits since the last tag so a release is never left unexplained.
+          NOTES=$(awk -v v="$VERSION" '
+            $0 ~ "^## \\[" v "\\]" { grab = 1; next }
+            grab && /^## \[/       { exit }
+            grab                   { print }
+          ' CHANGELOG.md)
+
+          if [ -z "$(echo "$NOTES" | tr -d '[:space:]')" ]; then
+            echo "::notice::No CHANGELOG section for $VERSION — using the commit log instead."
+            PREVIOUS=$(git describe --tags --abbrev=0 2>/dev/null || true)
+            if [ -n "$PREVIOUS" ]; then
+              NOTES=$(git log --no-merges --pretty='- %s' "$PREVIOUS..HEAD")
+            else
+              NOTES=$(git log --no-merges --pretty='- %s' -n 50)
+            fi
+          fi
+
+          {
+            echo 'body<<RELEASE_NOTES_EOF'
+            echo "$NOTES"
+            echo 'RELEASE_NOTES_EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create the tag and the release
+        if: steps.check.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          set -euo pipefail
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # Annotated, so the tag carries an author and a date.
+          git tag -a "$TAG" -m "catLock $TAG"
+          git push origin "$TAG"
+
+          gh release create "$TAG" \
+            --title "catLock $TAG" \
+            --notes "${{ steps.notes.outputs.body }}" \
+            --target "$GITHUB_SHA"
+
+          {
+            echo "### Released \`$TAG\`"
+            echo ""
+            echo "Tagged \`$GITHUB_SHA\` and published a GitHub release."
+          } >> "$GITHUB_STEP_SUMMARY"
