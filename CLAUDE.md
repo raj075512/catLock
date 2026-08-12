@@ -88,11 +88,28 @@ These are deliberate decisions, not oversights. If a change would break one, say
 
 ## Workflow
 
-- **Branch:** work happens on a `feature/*` branch. `main` and `dev` change only via PR.
-- **CI:** `.github/workflows/pr-checks.yml` runs a merge-conflict check plus `xcodebuild test` on PRs into `dev`.
+**`dev` is the branch. Everything starts there and everything goes back there.**
+
+1. **Cut every branch from `dev`** — never from `main`, never from another feature
+   branch. `git checkout dev && git pull` first, every time.
+2. **Every PR targets `dev`.** No exceptions, including one-line fixes and doc-only
+   changes.
+3. **`main` only ever receives `dev`,** as a release. Never a feature branch, never a
+   direct push.
+
+This is not bureaucracy — it has already broken twice. A feature branch was merged
+straight into `main`, which left `dev` two weeks behind the real app, and because CI
+only fired on PRs into `dev`, `main` sat with a failing test for a day and nobody saw
+it. Anything cut from `dev` in that window would have started from a codebase that no
+longer existed. Skipping `dev` skips CI.
+
+- **Branch names:** `feature/*` for features, `fix/*`, `chore/*`, `docs/*` otherwise.
+- **CI:** `.github/workflows/pr-checks.yml` runs a merge-conflict check plus
+  `xcodebuild test` on PRs into `dev` **and** `main`.
 - **Commits:** conventional prefixes (`feat:`, `fix:`, `docs:`, `chore:`) with a body explaining what and *why*. Look at recent history for the house style — bullet points, one thought per line.
 - **Pushing:** the Cowork/desktop sandbox **cannot reach github.com** (`403 from proxy`). It commits; `scripts/autopush.sh` on the user's Mac pushes. The terminal CLI can push directly.
-- **Never** force-push, never commit secrets, never commit to `main` or `dev` directly.
+- **Never** force-push, never commit secrets, never commit to `main` or `dev` directly,
+  and never open a PR against `main` from anything other than `dev`.
 
 ---
 
