@@ -106,6 +106,25 @@ longer existed. Skipping `dev` skips CI.
 - **Branch names:** `feature/*` for features, `fix/*`, `chore/*`, `docs/*` otherwise.
 - **CI:** `.github/workflows/pr-checks.yml` runs a merge-conflict check plus
   `xcodebuild test` on PRs into `dev` **and** `main`.
+
+### Releasing
+
+Merging `dev` into `main` *is* the release, and
+`.github/workflows/release-tag.yml` tags it automatically. Two things have to be
+done on `dev` first, in the same PR as the last change going out:
+
+1. Bump `MARKETING_VERSION` in `goCat.xcodeproj/project.pbxproj`.
+2. Rename the CHANGELOG's `## [Unreleased]` heading to `## [x.y.z] - YYYY-MM-DD`
+   and open a fresh `[Unreleased]` above it.
+
+The tag is derived from `MARKETING_VERSION`, never invented by CI — the number in
+the tag has to be the number that shipped, or neither can be trusted. Two-component
+versions are padded (`1.0` → `v1.0.0`). Release notes come from the matching
+CHANGELOG section, falling back to the commit log if there isn't one.
+
+If `MARKETING_VERSION` wasn't bumped, the tag already exists and the job **skips with
+a warning rather than failing** — it can't un-merge anything, so shouting is more use
+than a red tick. Check the run summary after a release merge.
 - **Commits:** conventional prefixes (`feat:`, `fix:`, `docs:`, `chore:`) with a body explaining what and *why*. Look at recent history for the house style — bullet points, one thought per line.
 - **Pushing:** the Cowork/desktop sandbox **cannot reach github.com** (`403 from proxy`). It commits; `scripts/autopush.sh` on the user's Mac pushes. The terminal CLI can push directly.
 - **Never** force-push, never commit secrets, never commit to `main` or `dev` directly,
