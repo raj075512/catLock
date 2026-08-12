@@ -55,12 +55,41 @@ Defined in `AppColors.swift`. Colors are built from hex via the `Color(hex:)` ex
 | `accent` | `#6E8B58` | 🟩 sage green | Success, positive accents, streaks |
 | `textPrimary` | `#1E2525` | ⬛ near-black | Primary text |
 | `textSecondary` | `#69706F` | ⬜ muted gray | Secondary/supporting text, captions |
-| `warning` | `#B85C38` | 🟥 burnt orange | Warnings, destructive/attention states |
+| `warning` | `#B85C38` | 🟥 burnt orange | Sync/billing problems, non-destructive alerts |
+| `danger` | `#D14343` | 🟥 clear red | Countdown text and Cancel **only**, plus destructive confirms |
+
+### Derived tokens
+
+| Token | Hex | Usage |
+|-------|-----|-------|
+| `hairline` | `#E2DED5` | Border on light surfaces, dividers between rows |
+| `disabled` | `#C6C0B4` | Placeholder fills, chevrons, and the em dash in an empty stat card |
+| `grabber` | `#D6D2C8` | Sheet grabber |
+| `scrim` | `rgba(30,37,37,.28)` | Dims the video behind a presented sheet |
+| `selectedRowTint` | `primary` at 8% | Selected option row, paired with a 1.5pt `primary` border |
+
+### Glass (`AppGlass`)
+
+Panels floating over the cat video. Depth comes from translucency and the scrim — **there are
+no shadows anywhere in this design.**
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| `panelFill` | 0.72 | Home's control panel, end-state panels |
+| `sessionStripFill` | 0.55 | The session strip — lower on purpose, so the cat stays the brightest thing on screen |
+| `bannerFill` | 0.86 | Trial-ending banner (v1.1) |
+| `innerChipFill` / `innerChipBorder` | 0.5 / 0.6 | Chips sitting *on* a glass panel |
+| `borderOpacity` | 0.35 | 1pt white border on every glass surface |
+
+**Higher contrast panels** (Accessibility) replaces all of the above with an opaque `surface`
+and a `textSecondary` border. `GlassSurface` is the single place this is applied.
 
 **Guidance**
-- Use `primary` for the main call-to-action (e.g. Start Focus).
-- Use `textSecondary` for captions, hints, and metadata.
-- Reserve `warning` for destructive or attention-critical states only.
+- `accent` starts something (Get started, Start Focus, Start focusing).
+- `primary` confirms or continues (Sounds good, Got it, Continue on completion).
+- `textSecondary` for captions, hints, and metadata.
+- `danger` is the countdown and Cancel, and nothing else.
+- Reserve `warning` for non-destructive attention states.
 
 ---
 
@@ -75,6 +104,11 @@ Defined in `AppFonts.swift`. Headings use the **rounded** system design for a fr
 | `headline` | 17 | Semibold | Rounded | Card titles, list headers, buttons |
 | `body` | 16 | Regular | Default | Body copy, descriptions |
 | `caption` | 13 | Medium | Default | Metadata, hints, timestamps |
+| `countdown` | 32 | Bold | Rounded | Session countdown — monospaced digits, −1 tracking |
+| `display` | 44 | Bold | Rounded | Custom-duration ring value, Progress streak number |
+
+Large title carries −0.5 tracking (`Text.largeTitleTracking()`). **Never below 13.** Supported
+to Accessibility XXXL.
 
 ---
 
@@ -100,7 +134,10 @@ Defined in `AppCornerRadius.swift`. Rounded corners reinforce the soft, cozy fee
 |-------|-------|-------|
 | `small` | 6 | Chips, small controls, badges |
 | `medium` | 8 | Buttons, input fields |
-| `large` | 12 | Cards, sheets, selection tiles |
+| `large` | 12 | Cards, list groups, option rows |
+| `strip` | 26 | Session strip, banners |
+| `panel` | 32 | Home control panel, end-state panels, sheet tops |
+| `capsule` | 999 | **All buttons and chips are full capsules** |
 
 ---
 
@@ -113,6 +150,22 @@ Defined in `AppAnimation.swift`. Keep motion subtle and purposeful; respect Redu
 | `quick` | easeOut | 0.18s | Taps, toggles, micro-interactions |
 | `standard` | easeInOut | 0.28s | View transitions, sheet presentation |
 | `slow` | easeInOut | 0.45s | Ambient/scene changes, emphasis |
+| `entrance` | spring(0.55, 0.82) | — | Content arriving for the first time |
+| `surveyAdvance` | easeOut | 0.18s | Survey row tints, then the flow moves on |
+| `panelGrow` | easeOut | 0.3s | Session strip growing into an end-state panel, radius 26 → 32 |
+| `streakCountUp` | easeOut | 0.4s | Streak pill counting 7 → 8 on completion |
+| `finalMinuteSweep` | linear | 60s | The accent hairline crossing the strip — linear because it is a clock |
+
+**Reduce Motion** (system setting OR the in-app toggle) swaps the video for a static poster,
+makes the ring arc jump rather than sweep, and shows the final-minute hairline at full width at
+00:30 instead of filling. The timer is always the source of truth about whether a session is
+running — **motion is decoration, never information.**
+
+### Layout constants (`AppLayout`)
+
+Fixed positions that aren't spacing between two things: glass panels sit 16 from each side and
+40 from the bottom; the minimum hit target is 44 everywhere; the overflow circle and survey back
+chevron are 40.
 
 ---
 
