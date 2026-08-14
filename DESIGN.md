@@ -237,8 +237,46 @@ Security hardening is on by default, not opt-in. Current baseline:
 
 - **`Core/Security/AppSecurityManager.swift`** — runs at launch (`AppDelegate.application(_:didFinishLaunchingWithOptions:)`) and checks for a jailbroken/tampered environment and an attached debugger. This is **advisory, not a hard block**: it never prevents a legitimate user from using the app. It exists so future entitlement/purchase logic can treat on-device state as lower-trust on a flagged device (e.g. prefer server-side receipt validation once a backend exists) and so we have a signal in logs if something looks off.
 - **`Core/Storage/KeychainStore.swift`** — the designated home for any secret, token, or entitlement cache. `UserDefaultsStore`/`SettingsStore` are unencrypted on disk and must stay limited to plain preferences (room, sound, durations) — never auth material or purchase receipts.
-- **No hardcoded secrets** — there are none in this codebase today because there is no backend/RevenueCat integration yet. When Supabase or RevenueCat keys are added (see MVP Scope), they must come from build configuration (`.xcconfig` + secrets manager), never be committed to source, and any long-lived token goes in `KeychainStore`.
-- **App Transport Security** — the app makes no network calls yet, so leave ATS at its strict default (no arbitrary loads) in the target's Info settings; do not add exceptions without a concrete, reviewed reason.
+- **No hardcoded secrets** — there are none, because there is no backend. See "Backend seam" below. If one is adopted, publishable/anon keys must come from build configuration (`.xcconfig`, already gitignored) rather than source, secret keys (`service_role`, SMTP, App Store Connect) must never enter this repo in any form, and any long-lived token goes in `KeychainStore`.
+- **App Transport Security** — the app makes no network calls at all, so leave ATS at its strict default (no arbitrary loads); do not add exceptions without a concrete, reviewed reason.
+
+---
+
+## 🔌 Backend seam
+
+**There is no backend, and the app does not depend on one.** No account, no
+network call, no vendor SDK — which is what lets `legal/PRIVACY_POLICY.md` keep
+saying the app makes no network requests and collects no data.
+
+The boundary exists anyway, because the expensive mistake is not "no backend
+yet", it is letting a vendor's types leak into feature code. A `Supabase`
+import in a view model or an `AWSCognito` type in `AppState` means switching
+provider is a rewrite rather than a file.
+
+| File | Role |
+|---|---|
+| `goCat/Services/Backend/BackendProvider.swift` | `IdentityProviding` + `SyncProviding`, and the plain value types that cross the boundary. No vendor types. |
+| `goCat/Services/Backend/LocalOnlyBackend.swift` | The shipping default. Every operation is a no-op reporting `.unavailable` / `.notConfigured`. |
+| `goCatTests/BackendSeamTests.swift` | Proves the default is inert and that a conforming provider substitutes cleanly. |
+
+**To adopt AWS or Supabase later:** add one type conforming to `Backend`
+(`IdentityProviding & SyncProviding`), and change the one line in
+`BackendProvider.current`. Nothing in `Features/` changes — nothing there
+imports a networking library, and that rule is what keeps the swap cheap in
+both directions.
+
+**Rules for any implementation:**
+
+- The account stays optional. Timer, streak and tasks work fully signed out and
+  offline (product rule 6).
+- Sign out changes identity only. It never touches local data.
+- `.expired` is not `.signedOut` — they say very different things to a user and
+  only one of them is alarming.
+- Errors surface as a plain sentence, never an error code and never a dialog.
+- Adopting a backend makes three statements in `legal/PRIVACY_POLICY.md` false
+  ("makes no network requests", twice, and "Data Not Collected"). Those must be
+  corrected in the same PR, and in-app account deletion becomes mandatory under
+  Guideline 5.1.1(v).
 - **Least data collection** — no analytics/crash SDKs are integrated yet (deliberately deferred); when they are, event payloads should stay in line with `Analytics Events` in the product blueprint and avoid collecting anything beyond what's declared in App Privacy.
 
 Run the `security-review` skill against the diff before merging any change that touches persistence, networking, or purchases.

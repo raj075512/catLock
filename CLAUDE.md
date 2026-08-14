@@ -28,7 +28,7 @@ and accounts are designed but not implemented.
 | Room | Six rooms, selection persists and swaps Home's video. **Only Living room's clip is bundled** — the rest fall back to it until the art exists. |
 | Premium / StoreKit | **Works.** StoreKit 2 purchase, restore and entitlement; paywall, trial banner and Plan & Billing built. Two tiers — yearly with a 7-day trial, monthly without. Products don't exist in App Store Connect yet; a bundled `.storekit` config covers local testing. |
 | Notifications | `LocalNotificationService` is still **never called** — the completion-notification copy is undecided (handoff outstanding decision #5). |
-| Accounts | Not built. No backend. Settings' Sign in / Plan & Billing rows are disabled. |
+| Accounts | **Not built, and deliberately not started.** No backend, no auth, no network call, no vendor SDK. A provider-agnostic seam exists (`Services/Backend/`) so AWS or Supabase can drop in later without touching feature code — see `DESIGN.md` § Backend seam. Settings' Sign in row stays disabled. |
 
 **Fixed, with tests:**
 
@@ -68,7 +68,7 @@ These are deliberate decisions, not oversights. If a change would break one, say
 - **No cat or chair customization, ever.** One fixed companion. Room background and sound are the only customization.
 - **No tab bar.** `HomeView` is the whole app; everything else is a sheet or lives in the overflow menu.
 - **Cat video plays `.once` on Home, `.looping` during a session.** Motion means "a session is running".
-- **Collects zero user data as built.** No analytics, no accounts, no network calls. This is a feature — see `legal/PRIVACY_POLICY.md`. Optional accounts are *designed* (`design/WIREFRAME_PROMPT.md` §8) but not implemented; if they ever are, the account must stay optional, and in-app account deletion becomes mandatory. See `DECISIONS.md` 2026-08-10.
+- **Collects zero user data as built.** No analytics, no accounts, no network calls, and **no vendor SDK for any of it**. This is a feature — see `legal/PRIVACY_POLICY.md`. Optional accounts are *designed* (wireframes 33–40) but deliberately not implemented. Talk to `Services/Backend/` protocols, never to a vendor type; nothing under `Features/` may import a networking library. If a backend is ever adopted, the account must stay optional, in-app deletion becomes mandatory, and three privacy-policy statements need correcting in the same PR. See `DECISIONS.md`.
 
 ---
 

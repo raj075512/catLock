@@ -337,6 +337,39 @@ legal furniture and the unavailable state.
 
 ---
 
+## 2026-08-13 — No backend, and a seam instead of a commitment
+
+**Decision:** the app stays local-only. No auth, no accounts, no sync, no vendor
+SDK. What ships instead is a provider-agnostic boundary — `IdentityProviding` and
+`SyncProviding` in `Services/Backend/`, with `LocalOnlyBackend` as the default —
+so AWS or Supabase can be adopted later by adding one conforming type and changing
+one line.
+
+**Why:** a Supabase project, schema and SDK were briefly added and then removed the
+same day. The work surfaced three costs that were not worth paying yet:
+
+- Adopting a backend makes three statements in `legal/PRIVACY_POLICY.md` false and
+  turns the App Store label from "Data Not Collected" into Contact Info linked to
+  identity. For an ADHD-focused app whose pitch includes collecting nothing, that
+  is a product cost, not just paperwork.
+- Email OTP needs custom SMTP with a verified sending domain. The product name is
+  disputed and unresolved (`legal/IP_CLEARANCE.md`), so buying a domain now risks
+  buying the wrong one.
+- Sign in with Apple binds to the bundle ID, and `ashutosh.goCat` is already flagged
+  for change. Configuring against it means doing it twice.
+
+**Why a seam rather than nothing:** "no backend yet" and "no backend ever" are
+different, and the expensive mistake is letting a vendor's types leak into feature
+code. A `Supabase` import in a view model means switching provider is a rewrite.
+The boundary costs two files and seven tests today and makes the choice reversible
+in both directions.
+
+**The rule it creates:** nothing under `Features/` imports a networking library.
+Feature code talks to the protocols; only one file per provider knows a vendor
+exists.
+
+---
+
 ## Open decisions — not yet made
 
 These need an answer before launch. Listed so they don't get forgotten.
